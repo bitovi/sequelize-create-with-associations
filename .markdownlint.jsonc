@@ -1,0 +1,5 @@
+{
+  "default": true,
+  "MD033": false, // Allow inline HTML
+  "MD013": false // Do not enforce line length
+}
