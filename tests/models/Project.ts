@@ -1,4 +1,4 @@
-import { ScaffoldModel, DataTypes } from "../../../types";
+import { ScaffoldModel, DataTypes } from "../../src/types";
 
 export const Project: ScaffoldModel = {
   name: "Project",
