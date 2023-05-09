@@ -24,18 +24,7 @@ import {
 import { IAssociation } from "./types";
 import { ScaffoldError } from "../error/errors";
 
-/**
- * ExtendSequelize is a function that replaces some model functions
- * in Sequelize, so users can call
- * original Scaffold Model that was used to generate it.
- *
- */
-
 export function extendedSequelize(scaffold: Scaffold) {
-  const origFindAll = Model.findAll;
-  const origFindOne = Model.findOne;
-  const origFindByPk = Model.findByPk;
-  const origFindOrCreate = Model.findOrCreate;
   const origCreate = Model.create;
   const origBulkCreate = Model.bulkCreate;
   const origUpdate = Model.update;
@@ -299,22 +288,6 @@ export function extendedSequelize(scaffold: Scaffold) {
     }
 
     return modelUpdateData;
-  };
-
-  Model.findAll = async function (queryOptions) {
-    return origFindAll.apply(this, [queryOptions]);
-  };
-
-  Model.findOne = async function (queryOptions) {
-    return origFindOne.apply(this, [queryOptions]);
-  };
-
-  Model.findByPk = async function (id, queryOptions) {
-    return origFindByPk.apply(this, [id, queryOptions]);
-  };
-
-  Model.findOrCreate = async function (queryOptions) {
-    return origFindOrCreate.apply(this, [queryOptions]);
   };
 
   return Sequelize;
