@@ -9,7 +9,7 @@ import { MakeNullishOptional } from "sequelize/types/utils";
 
 type AssociationLookup = Record<string, Record<string, IAssociation>>;
 
-let associationsLookup: undefined | AssociationLookup;
+let associationsLookup: AssociationLookup;
 
 function calculateAssociationProp(associations) {
   const result = {};
@@ -17,7 +17,7 @@ function calculateAssociationProp(associations) {
   Object.keys(associations).forEach((key) => {
     const association = {};
     let propertyName;
-    if (associations[key].hasOwnProperty("options")) {
+    if (Object.hasOwn(associations[key], "options") ) {
       const { associationType, target, foreignKey, throughModel } =
         associations[key];
       propertyName = key.toLocaleLowerCase();
@@ -43,7 +43,7 @@ function getLookup(sequelize): AssociationLookup {
       lookup[key] = associations;
     });
     associationsLookup = lookup;
-  }
+  } 
   return associationsLookup;
 }
 

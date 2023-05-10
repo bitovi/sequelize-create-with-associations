@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Attributes, ModelStatic, Sequelize, Transaction } from "sequelize";
 import { JSONAnyObject } from "../../types";
 import { IAssociation } from "../types";
