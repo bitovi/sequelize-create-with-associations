@@ -1,45 +1,67 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import {
-  Sequelize,
-  Model,
-  CreateOptions,
-  ModelStatic,
-  Attributes,
-  UpdateOptions,
-} from "sequelize";
-import { Col, Fn, Literal, MakeNullishOptional } from "sequelize/types/utils";
-import { Scaffold } from "..";
 import {
   getValidAttributesAndAssociations,
-  handleBulkCreateAssociations,
   handleCreateAssociations,
-  handleUpdateAssociations,
 } from "./associations";
-import { handleUpdateBelongs } from "./associations/sequelize.patch";
-import {
-  handleBulkCreateBelongs,
-  handleCreateBelongs,
-} from "./associations/sequelize.post";
+import { handleCreateBelongs } from "./associations/sequelize.post";
 import { IAssociation } from "./types";
-import { ScaffoldError } from "../error/errors";
+import { Model, CreateOptions, Attributes } from "sequelize";
+import { MakeNullishOptional } from "sequelize/types/utils";
 
-export function extendedSequelize(scaffold: Scaffold) {
-  const origCreate = Model.create;
-  const origBulkCreate = Model.bulkCreate;
-  const origUpdate = Model.update;
+type AssociationLookup = Record<string, Record<string, IAssociation>>;
 
-  Model.create = async function <
+let associationsLookup: undefined | AssociationLookup;
+
+function calculateAssociationProp(associations) {
+  const result = {};
+
+  Object.keys(associations).forEach((key) => {
+    const association = {};
+    let propertyName;
+    if (associations[key].hasOwnProperty("options")) {
+      const { associationType, target, foreignKey, throughModel } =
+        associations[key];
+      propertyName = key.toLocaleLowerCase();
+      association[propertyName] = {
+        type: associationType,
+        key: foreignKey,
+        model: target.name,
+        joinTable: throughModel,
+      };
+    }
+    result[propertyName] = association[propertyName];
+  });
+
+  return result;
+}
+function getLookup(sequelize): AssociationLookup {
+  if (!associationsLookup) {
+    let lookup: any = {};
+    const models = sequelize.models;
+    const modelKeys = Object.keys(models);
+    modelKeys.forEach((key) => {
+      const associations = calculateAssociationProp(models[key].associations);
+      lookup[key] = associations;
+    });
+    associationsLookup = lookup;
+  }
+  return associationsLookup;
+}
+
+export const extendSequelize = async (SequelizeClass: any) => {
+  const origCreate = SequelizeClass.Model.create;
+
+  SequelizeClass.Model.create = async function <
     M extends Model,
     O extends CreateOptions<Attributes<M>> = CreateOptions<Attributes<M>>
   >(
-    this: ModelStatic<M>,
     attributes: MakeNullishOptional<M["_creationAttributes"]> | undefined,
     options?: O
   ) {
-    const associations = scaffold.associationsLookup[this.name];
-    const modelPrimaryKey = this.primaryKeyAttribute;
+    const { sequelize } = this.options;
 
+    const associations = getLookup(sequelize)[this.name];
+
+    const modelPrimaryKey = this.primaryKeyAttribute;
     let modelData:
       | undefined
       | (O extends { returning: false } | { ignoreDuplicates: true }
@@ -48,14 +70,12 @@ export function extendedSequelize(scaffold: Scaffold) {
     let currentModelAttributes = attributes;
 
     const {
-      // validAssociationsInAttributes,
       externalAssociations,
       belongsAssociation,
       currentModelAttributes: _attributes,
     } = getValidAttributesAndAssociations(attributes, associations);
 
     currentModelAttributes = _attributes;
-    // All associations
     const validAssociationsInAttributes = [
       ...externalAssociations,
       ...belongsAssociation,
@@ -67,7 +87,7 @@ export function extendedSequelize(scaffold: Scaffold) {
     }
 
     const transaction =
-      options?.transaction ?? (await scaffold.orm.transaction());
+      options?.transaction ?? (await this.sequelize.transaction());
 
     try {
       if (belongsAssociation.length > 0) {
@@ -93,7 +113,7 @@ export function extendedSequelize(scaffold: Scaffold) {
           ]);
         }
         await handleCreateAssociations(
-          scaffold,
+          this.sequelize,
           this,
           externalAssociations,
           associations as Record<string, IAssociation>,
@@ -112,183 +132,4 @@ export function extendedSequelize(scaffold: Scaffold) {
 
     return modelData;
   };
-
-  Model.bulkCreate = async function <
-    M extends Model,
-    O extends CreateOptions<Attributes<M>> = CreateOptions<Attributes<M>>
-  >(
-    this: ModelStatic<M>,
-    attributes: MakeNullishOptional<M["_creationAttributes"]>[],
-    options?: O
-  ) {
-    const associations = scaffold.associationsLookup[this.name];
-    const modelPrimaryKey = this.primaryKeyAttribute;
-
-    let modelData:
-      | undefined
-      | (O extends { returning: false } | { ignoreDuplicates: true }
-          ? void
-          : M)[];
-    let currentModelAttributes = attributes;
-
-    const {
-      otherAssociationAttributes,
-      externalAssociations,
-      belongsAssociation,
-      currentModelAttributes: _attributes,
-    } = getValidAttributesAndAssociations(attributes, associations);
-    currentModelAttributes = _attributes;
-    // All associations
-    const validAssociationsInAttributes = [
-      ...externalAssociations,
-      ...belongsAssociation,
-    ];
-
-    // If there are no associations, create the model with all attributes.
-    if (validAssociationsInAttributes.length === 0) {
-      return origBulkCreate.apply(this, [attributes, options]);
-    }
-
-    const transaction =
-      options?.transaction ?? (await scaffold.orm.transaction());
-
-    try {
-      if (belongsAssociation.length > 0) {
-        const _model = await handleBulkCreateBelongs(
-          this,
-          origBulkCreate,
-          currentModelAttributes,
-          belongsAssociation,
-          associations as Record<string, IAssociation>,
-          otherAssociationAttributes,
-          transaction,
-          modelPrimaryKey
-        );
-        modelData = _model;
-      }
-
-      if (externalAssociations.length > 0) {
-        // create the model first if it does not exist
-        if (!modelData) {
-          modelData = await origBulkCreate.apply(this, [
-            currentModelAttributes,
-            { transaction },
-          ]);
-        }
-        const modelIds = modelData?.map((data) =>
-          data.getDataValue(modelPrimaryKey)
-        ) as string[];
-        await handleBulkCreateAssociations(
-          scaffold,
-          this,
-          externalAssociations,
-          associations as Record<string, IAssociation>,
-          otherAssociationAttributes,
-          transaction,
-          modelIds,
-          modelPrimaryKey
-        );
-      }
-      !options?.transaction && (await transaction.commit());
-    } catch (error) {
-      !options?.transaction && (await transaction.rollback());
-      throw error;
-    }
-
-    return modelData;
-  };
-
-  Model.update = async function <M extends Model<any, any>>(
-    this: ModelStatic<M>,
-    attributes: {
-      [key in keyof Attributes<M>]?:
-        | Fn
-        | Col
-        | Literal
-        | Attributes<M>[key]
-        | undefined;
-    },
-    ops: Omit<UpdateOptions<Attributes<M>>, "returning"> & {
-      returning: Exclude<
-        UpdateOptions<Attributes<M>>["returning"],
-        undefined | false
-      >;
-    }
-  ) {
-    const associations = scaffold.associationsLookup[this.name];
-    const modelPrimaryKey = this.primaryKeyAttribute;
-
-    if (!ops.where?.[modelPrimaryKey]) {
-      throw new ScaffoldError("Primary key does not exist");
-    }
-    const modelId = ops.where[modelPrimaryKey];
-    let modelUpdateData: [affectedCount: number, affectedRows: M[]] | undefined;
-    let currentModelAttributes = attributes;
-
-    const {
-      externalAssociations,
-      belongsAssociation,
-      currentModelAttributes: _attributes,
-    } = getValidAttributesAndAssociations(attributes, associations);
-    currentModelAttributes = _attributes;
-
-    const validAssociationsInAttributes = [
-      ...externalAssociations,
-      ...belongsAssociation,
-    ];
-
-    // If there are no associations, create the model with all attributes.
-    if (validAssociationsInAttributes.length === 0) {
-      return origUpdate.apply(this, [attributes, ops]);
-    }
-
-    const transaction = await scaffold.orm.transaction();
-
-    try {
-      if (belongsAssociation.length > 0) {
-        const _model = await handleUpdateBelongs(
-          this,
-          ops,
-          origUpdate,
-          currentModelAttributes,
-          belongsAssociation,
-          associations as Record<string, IAssociation>,
-          attributes,
-          transaction,
-          modelPrimaryKey
-        );
-        modelUpdateData = _model;
-      }
-      if (externalAssociations.length > 0) {
-        if (!modelUpdateData) {
-          modelUpdateData = await origUpdate.apply(this, [
-            currentModelAttributes,
-            {
-              ...ops,
-              transaction,
-            },
-          ]);
-        }
-        await handleUpdateAssociations(
-          scaffold,
-          this,
-          externalAssociations,
-          associations as Record<string, IAssociation>,
-          attributes,
-          transaction,
-          modelId,
-          modelPrimaryKey
-        );
-      }
-
-      !ops?.transaction && (await transaction.commit());
-    } catch (error) {
-      !ops?.transaction && (await transaction.rollback());
-      throw error;
-    }
-
-    return modelUpdateData;
-  };
-
-  return Sequelize;
-}
+};

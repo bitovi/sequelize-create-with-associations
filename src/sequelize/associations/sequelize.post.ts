@@ -1,9 +1,5 @@
 import * as inflection from "inflection";
-import { Attributes, ModelStatic, Transaction } from "sequelize";
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Scaffold } from "../..";
-import { ScaffoldError } from "../../error/errors";
+import { Attributes, ModelStatic, Sequelize, Transaction } from "sequelize";
 import { JSONAnyObject } from "../../types";
 import { IAssociation, IAssociationBody } from "../types";
 
@@ -61,7 +57,7 @@ export const handleBulkCreateBelongs = async (
 };
 
 export const handleCreateHasOne = async (
-  scaffold: Scaffold,
+  sequelize: Sequelize,
   association: IAssociationBody<JSONAnyObject | Array<JSONAnyObject>>,
   model: { name: string; id?: string | Array<string> },
   transaction: Transaction,
@@ -74,7 +70,7 @@ export const handleCreateHasOne = async (
       ...association.attributes,
       [key]: model[primaryKey],
     };
-    await scaffold.model[association.details.model].create(data, {
+    await sequelize.models[association.details.model].create(data, {
       transaction,
     });
   } else {
@@ -86,34 +82,34 @@ export const handleCreateHasOne = async (
         [key]: model[i]?.[primaryKey],
       };
     });
-    await scaffold.model[association.details.model].bulkCreate(data, {
+    await sequelize.models[association.details.model].bulkCreate(data, {
       transaction,
     });
   }
 };
 
 export const handleCreateMany = async (
-  scaffold: Scaffold,
+  sequelize: Sequelize,
   association: IAssociationBody<Array<JSONAnyObject>>,
   model: { name: string; id: string },
   transaction: Transaction,
   primaryKey = "id"
 ) => {
   // Create an instance of the model using the id
-  const modelInstance = await scaffold.model[model.name].findByPk(
+  const modelInstance = await sequelize.models[model.name].findByPk(
     model[primaryKey],
     {
       transaction,
     }
   );
   if (!modelInstance) {
-    throw new ScaffoldError("Unable to find Created Model");
+    throw new Error("Unable to find Created Model");
   }
   const isCreate = !association.attributes[0][primaryKey];
   let joinIds: Array<string> = [];
   if (isCreate) {
     // Create the models first and add their ids to the joinIds.
-    const associationData = await scaffold.model[
+    const associationData = await sequelize.models[
       association.details.model
     ].bulkCreate(association.attributes, { transaction });
     joinIds = associationData.map((data) => data.getDataValue(primaryKey));
@@ -128,21 +124,21 @@ export const handleCreateMany = async (
 };
 
 export const handleBulkCreateMany = async (
-  scaffold: Scaffold,
+  sequelize: Sequelize,
   association: IAssociationBody<Array<JSONAnyObject[]>>,
   model: { name: string; id: Array<string> },
   transaction: Transaction,
   primaryKey = "id"
 ) => {
   // Create an instance of the model using the id
-  const modelInstances = await scaffold.model[model.name].findAll({
+  const modelInstances = await sequelize.models[model.name].findAll({
     where: {
       [primaryKey]: model.id,
     },
     transaction,
   });
   if (modelInstances.length !== model.id.length) {
-    throw new ScaffoldError("Not all models were successfully created");
+    throw new Error("Not all models were successfully created");
   }
   let i = 0;
   for (const modelInstance of modelInstances) {
@@ -150,7 +146,7 @@ export const handleBulkCreateMany = async (
     let joinIds: Array<string> = [];
     if (isCreate) {
       // Create the models first and add their ids to the joinIds.
-      const associationData = await scaffold.model[
+      const associationData = await sequelize.models[
         association.details.model
       ].bulkCreate(association.attributes[i], { transaction });
       joinIds = associationData.map((data) => data.getDataValue(primaryKey));

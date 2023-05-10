@@ -1,8 +1,12 @@
 import * as inflection from "inflection";
-import { Attributes, ModelStatic, Transaction, UpdateOptions } from "sequelize";
+import {
+  Attributes,
+  ModelStatic,
+  Sequelize,
+  Transaction,
+  UpdateOptions,
+} from "sequelize";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Scaffold } from "../..";
 import { IAssociation, IAssociationBody } from "../types";
 
 export const handleUpdateBelongs = async (
@@ -35,7 +39,7 @@ export const handleUpdateBelongs = async (
 };
 
 export const handleUpdateOne = async (
-  scaffold: Scaffold,
+  sequelize: Sequelize,
   association: IAssociationBody<Array<Record<string, any>>>,
   model: { name: string; id: string },
   transaction: Transaction,
@@ -43,7 +47,7 @@ export const handleUpdateOne = async (
 ) => {
   const key = association.details.key;
 
-  await scaffold.model[association.details.model].update(
+  await sequelize.model[association.details.model].update(
     association.attributes,
     {
       where: {
@@ -55,13 +59,13 @@ export const handleUpdateOne = async (
 };
 
 export const handleUpdateMany = async (
-  scaffold: Scaffold,
+  sequelize: Sequelize,
   association: IAssociationBody<Array<Record<string, any>>>,
   model: { name: string; id: string },
   transaction: Transaction,
   primaryKey = "id"
 ) => {
-  const modelInstance = await scaffold.model[model.name].findByPk(
+  const modelInstance = await sequelize.model[model.name].findByPk(
     model[primaryKey]
   );
   if (!modelInstance) {

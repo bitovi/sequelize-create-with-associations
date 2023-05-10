@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Attributes, ModelStatic, Transaction } from "sequelize";
-import { Scaffold } from "../..";
+import { Attributes, ModelStatic, Sequelize, Transaction } from "sequelize";
 import { JSONAnyObject } from "../../types";
 import { IAssociation } from "../types";
 import { handleUpdateMany, handleUpdateOne } from "./sequelize.patch";
@@ -62,7 +61,7 @@ export const getValidAttributesAndAssociations = (
 };
 
 export const handleCreateAssociations = async (
-  scaffold: Scaffold,
+  sequelize: Sequelize,
   model: ModelStatic<any>,
   validAssociations: Array<string>,
   associations: Record<string, IAssociation>,
@@ -76,9 +75,9 @@ export const handleCreateAssociations = async (
     const associationAttribute = attributes[association];
 
     switch (associationDetails.type) {
-      case "hasOne":
+      case "HasOne":
         await handleCreateHasOne(
-          scaffold,
+          sequelize,
           {
             details: associationDetails,
             attributes: associationAttribute,
@@ -89,10 +88,10 @@ export const handleCreateAssociations = async (
           true
         );
         break;
-      case "hasMany":
+      case "HasMany":
         //TODO: fix this and similar ones
         await handleCreateMany(
-          scaffold,
+          sequelize,
           {
             details: associationDetails,
             attributes: associationAttribute,
@@ -102,9 +101,9 @@ export const handleCreateAssociations = async (
           primaryKey
         );
         break;
-      case "belongsToMany":
+      case "BelongsToMany":
         await handleCreateMany(
-          scaffold,
+          sequelize,
           {
             details: associationDetails,
             attributes: associationAttribute,
@@ -121,7 +120,7 @@ export const handleCreateAssociations = async (
 };
 
 export const handleBulkCreateAssociations = async (
-  scaffold: Scaffold,
+  sequelize: Sequelize,
   model: ModelStatic<any>,
   validAssociations: Array<string>,
   associations: Record<string, IAssociation>,
@@ -135,9 +134,9 @@ export const handleBulkCreateAssociations = async (
     const associationAttribute = attributes[association];
 
     switch (associationDetails.type) {
-      case "hasOne":
+      case "HasOne":
         await handleCreateHasOne(
-          scaffold,
+          sequelize,
           {
             details: associationDetails,
             attributes: associationAttribute,
@@ -147,10 +146,10 @@ export const handleBulkCreateAssociations = async (
           primaryKey
         );
         break;
-      case "hasMany":
-      case "belongsToMany":
+      case "HasMany":
+      case "BelongsToMany":
         await handleBulkCreateMany(
-          scaffold,
+          sequelize,
           {
             details: associationDetails,
             attributes: associationAttribute,
@@ -167,7 +166,7 @@ export const handleBulkCreateAssociations = async (
 };
 
 export const handleUpdateAssociations = async (
-  scaffold: Scaffold,
+  sequelize: Sequelize,
   model: ModelStatic<any>,
   validAssociations: Array<string>,
   associations: Record<string, IAssociation>,
@@ -181,9 +180,9 @@ export const handleUpdateAssociations = async (
     const associationAttribute = attributes[association];
 
     switch (associationDetails.type) {
-      case "hasOne":
+      case "HasOne":
         await handleUpdateOne(
-          scaffold,
+          sequelize,
           {
             details: associationDetails,
             attributes: associationAttribute,
@@ -196,10 +195,10 @@ export const handleUpdateAssociations = async (
           primaryKey
         );
         break;
-      case "hasMany":
-      case "belongsToMany":
+      case "HasMany":
+      case "BelongsToMany":
         await handleUpdateMany(
-          scaffold,
+          sequelize,
           {
             details: associationDetails,
             attributes: associationAttribute,
