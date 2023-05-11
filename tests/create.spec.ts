@@ -5,9 +5,9 @@ import { extendSequelize } from "../src/sequelize/extended";
 dotenv.config();
 
 describe("Create", () => {
-  let mockedSequelize: any; 
+  let mockedSequelize: any;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     await extendSequelize(Sequelize);
 
     mockedSequelize = new Sequelize({
@@ -19,15 +19,46 @@ describe("Create", () => {
       database: process.env.DB_NAME,
       logging: false,
     });
-
-    await mockedSequelize.authenticate();
   });
+
   afterEach(async () => {
     await mockedSequelize.drop();
-    await mockedSequelize.close();
     jest.clearAllMocks();
   });
 
+  afterAll(async () => {
+    await mockedSequelize.close();
+  });
+
+  it("Should create records associated through hasOne", async () => {
+    const User = mockedSequelize.define("User", {
+      name: DataTypes.STRING,
+      age: DataTypes.INTEGER,
+    });
+
+    const Skill = mockedSequelize.define("Skill", {
+      name: DataTypes.STRING,
+    });
+
+    User.hasOne(Skill, { as: "skill" });
+    Skill.belongsTo(User);
+
+    await mockedSequelize.sync();
+
+    await User.create({
+      name: "Roy",
+      age: 32,
+      skill: { name: "Programming" },
+    });
+
+    const users = await User.findAll({ include: ["skill"] });
+    const skills = await Skill.findAll();
+
+    expect(users[0].skill).toEqual(
+      expect.objectContaining({ name: "Programming" })
+    );
+    expect(skills).toHaveLength(1);
+  });
   it("Should create records associated through hasMany", async () => {
     const User = mockedSequelize.define("User", {
       name: DataTypes.STRING,
@@ -38,17 +69,11 @@ describe("Create", () => {
       name: DataTypes.STRING,
     });
 
-    User.belongsToMany(Skill, {
+    User.hasMany(Skill, {
       as: "skills",
-      foreignKey: "user_id",
-      through: "user_skills",
     });
 
-    Skill.belongsToMany(User, {
-      as: "users",
-      foreignKey: "skill_id",
-      through: "user_skills",
-    });
+    Skill.belongsTo(User);
 
     await mockedSequelize.sync();
 

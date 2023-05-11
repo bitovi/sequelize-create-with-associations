@@ -17,7 +17,7 @@ function calculateAssociationProp(associations) {
   Object.keys(associations).forEach((key) => {
     const association = {};
     let propertyName;
-    if (Object.hasOwn(associations[key], "options") ) {
+    if (Object.hasOwn(associations[key], "options")) {
       const { associationType, target, foreignKey, throughModel } =
         associations[key];
       propertyName = key.toLocaleLowerCase();
@@ -34,16 +34,17 @@ function calculateAssociationProp(associations) {
   return result;
 }
 function getLookup(sequelize): AssociationLookup {
-  if (!associationsLookup) {
-    let lookup: any = {};
-    const models = sequelize.models;
-    const modelKeys = Object.keys(models);
-    modelKeys.forEach((key) => {
-      const associations = calculateAssociationProp(models[key].associations);
-      lookup[key] = associations;
-    });
-    associationsLookup = lookup;
-  } 
+  //TODO: Fix associations lookup being static
+  /*  if (!associationsLookup) { */
+  let lookup: any = {};
+  const models = sequelize.models;
+  const modelKeys = Object.keys(models);
+  modelKeys.forEach((key) => {
+    const associations = calculateAssociationProp(models[key].associations);
+    lookup[key] = associations;
+  });
+  associationsLookup = lookup;
+  /* }  */
   return associationsLookup;
 }
 

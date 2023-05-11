@@ -65,6 +65,7 @@ export const handleCreateHasOne = async (
   isCreateOne = true
 ) => {
   const key = association.details.key;
+
   if (isCreateOne) {
     const data = {
       ...association.attributes,
