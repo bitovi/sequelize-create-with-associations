@@ -1,11 +1,13 @@
+import { Model, CreateOptions, Attributes, UpdateOptions } from "sequelize";
+import { Col, Fn, Literal, MakeNullishOptional } from "sequelize/types/utils";
 import {
   getValidAttributesAndAssociations,
   handleCreateAssociations,
+  handleUpdateAssociations,
 } from "./associations";
 import { handleCreateBelongs } from "./associations/sequelize.post";
 import { IAssociation } from "./types";
-import { Model, CreateOptions, Attributes } from "sequelize";
-import { MakeNullishOptional } from "sequelize/types/utils";
+import { handleUpdateBelongs } from "./associations/sequelize.patch";
 
 type AssociationLookup = Record<string, Record<string, IAssociation>>;
 
@@ -50,6 +52,7 @@ function getLookup(sequelize): AssociationLookup {
 
 export const extendSequelize = async (SequelizeClass: any) => {
   const origCreate = SequelizeClass.Model.create;
+  const origUpdate = SequelizeClass.Model.update;
 
   SequelizeClass.Model.create = async function <
     M extends Model,
@@ -132,5 +135,97 @@ export const extendSequelize = async (SequelizeClass: any) => {
     }
 
     return modelData;
+  };
+
+  SequelizeClass.Model.update = async function <M extends Model<any, any>>(
+    attributes: {
+      [key in keyof Attributes<M>]?:
+        | Fn
+        | Col
+        | Literal
+        | Attributes<M>[key]
+        | undefined;
+    },
+    ops: Omit<UpdateOptions<Attributes<M>>, "returning"> & {
+      returning: Exclude<
+        UpdateOptions<Attributes<M>>["returning"],
+        undefined | false
+      >;
+    }
+  ) {
+    const { sequelize } = this.options;
+    const associations = getLookup(sequelize)[this.name];
+    const modelPrimaryKey = this.primaryKeyAttribute;
+
+    if (!ops.where?.[modelPrimaryKey]) {
+      throw new Error("Primary key does not exist");
+    }
+    const modelId = ops.where[modelPrimaryKey];
+    let modelUpdateData: [affectedCount: number, affectedRows: M[]] | undefined;
+    let currentModelAttributes = attributes;
+
+    const {
+      externalAssociations,
+      belongsAssociation,
+      currentModelAttributes: _attributes,
+    } = getValidAttributesAndAssociations(attributes, associations);
+    currentModelAttributes = _attributes;
+
+    const validAssociationsInAttributes = [
+      ...externalAssociations,
+      ...belongsAssociation,
+    ];
+
+    // If there are no associations, create the model with all attributes.
+    if (validAssociationsInAttributes.length === 0) {
+      return origUpdate.apply(this, [attributes, ops]);
+    }
+
+    const transaction = await this.sequelize.transaction();
+
+    try {
+      if (belongsAssociation.length > 0) {
+        const _model = await handleUpdateBelongs(
+          this,
+          ops,
+          origUpdate,
+          currentModelAttributes,
+          belongsAssociation,
+          associations as Record<string, IAssociation>,
+          attributes,
+          transaction,
+          modelPrimaryKey
+        );
+        modelUpdateData = _model;
+      }
+      if (externalAssociations.length > 0) {
+        if (!modelUpdateData) {
+          modelUpdateData = await origUpdate.apply(this, [
+            currentModelAttributes,
+            {
+              ...ops,
+              transaction,
+            },
+          ]);
+        }
+        await handleUpdateAssociations(
+          this.sequelize,
+          this,
+          externalAssociations,
+          associations as Record<string, IAssociation>,
+          attributes,
+          transaction,
+          modelId,
+          modelPrimaryKey
+        );
+      }
+
+      !ops?.transaction && (await transaction.commit());
+    } catch (error) {
+      !ops?.transaction && (await transaction.rollback());
+      throw error;
+    }
+
+    return modelUpdateData;
   };
 };
