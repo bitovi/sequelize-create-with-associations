@@ -59,6 +59,16 @@ await User.create({
     },
   ],
 });
+//or
+await User.create({
+  name: "Roy",
+  skills: [
+    {
+      id: "0661f6f2-f0d8-11ed-a05b-0242ac120003",
+    },
+  ],
+});
+
 // It should work on the fly.
 ```
 
