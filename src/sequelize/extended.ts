@@ -2,10 +2,14 @@ import { Model, CreateOptions, Attributes, UpdateOptions } from "sequelize";
 import { Col, Fn, Literal, MakeNullishOptional } from "sequelize/types/utils";
 import {
   getValidAttributesAndAssociations,
+  handleBulkCreateAssociations,
   handleCreateAssociations,
   handleUpdateAssociations,
 } from "./associations";
-import { handleCreateBelongs } from "./associations/sequelize.post";
+import {
+  handleBulkCreateBelongs,
+  handleCreateBelongs,
+} from "./associations/sequelize.post";
 import { IAssociation } from "./types";
 import { handleUpdateBelongs } from "./associations/sequelize.patch";
 
@@ -54,6 +58,7 @@ function getLookup(sequelize): AssociationLookup {
 export const extendSequelize = async (SequelizeClass: any) => {
   const origCreate = SequelizeClass.Model.create;
   const origUpdate = SequelizeClass.Model.update;
+  const origBulkCreate = Model.bulkCreate;
 
   SequelizeClass.Model.create = async function <
     M extends Model,
@@ -138,6 +143,89 @@ export const extendSequelize = async (SequelizeClass: any) => {
     return modelData;
   };
 
+  Model.bulkCreate = async function <
+    M extends Model,
+    O extends CreateOptions<Attributes<M>> = CreateOptions<Attributes<M>>
+  >(attributes: MakeNullishOptional<M["_creationAttributes"]>[], options?: O) {
+    const { sequelize } = this.options;
+
+    const associations = getLookup(sequelize)[this.name];
+
+    const modelPrimaryKey = this.primaryKeyAttribute;
+
+    let modelData:
+      | undefined
+      | (O extends { returning: false } | { ignoreDuplicates: true }
+          ? void
+          : M)[];
+    let currentModelAttributes = attributes;
+
+    const {
+      otherAssociationAttributes,
+      externalAssociations,
+      belongsAssociation,
+      currentModelAttributes: _attributes,
+    } = getValidAttributesAndAssociations(attributes, associations);
+    currentModelAttributes = _attributes;
+    // All associations
+    const validAssociationsInAttributes = [
+      ...externalAssociations,
+      ...belongsAssociation,
+    ];
+
+    // If there are no associations, create the model with all attributes.
+    if (validAssociationsInAttributes.length === 0) {
+      return origBulkCreate.apply(this, [attributes, options]);
+    }
+
+    const transaction =
+      options?.transaction ?? (await this.sequelize.transaction());
+
+    try {
+      if (belongsAssociation.length > 0) {
+        const _model = await handleBulkCreateBelongs(
+          this,
+          origBulkCreate,
+          currentModelAttributes,
+          belongsAssociation,
+          associations as Record<string, IAssociation>,
+          otherAssociationAttributes,
+          transaction,
+          modelPrimaryKey
+        );
+        modelData = _model;
+      }
+
+      if (externalAssociations.length > 0) {
+        // create the model first if it does not exist
+        if (!modelData) {
+          modelData = await origBulkCreate.apply(this, [
+            currentModelAttributes,
+            { transaction },
+          ]);
+        }
+        const modelIds = modelData?.map((data) =>
+          data.getDataValue(modelPrimaryKey)
+        ) as string[];
+        await handleBulkCreateAssociations(
+          this.sequelize,
+          this,
+          externalAssociations,
+          associations as Record<string, IAssociation>,
+          otherAssociationAttributes,
+          transaction,
+          modelIds,
+          modelPrimaryKey
+        );
+      }
+      !options?.transaction && (await transaction.commit());
+    } catch (error) {
+      !options?.transaction && (await transaction.rollback());
+      throw error;
+    }
+
+    return modelData;
+  };
   SequelizeClass.Model.update = async function <M extends Model<any, any>>(
     attributes: {
       [key in keyof Attributes<M>]?:

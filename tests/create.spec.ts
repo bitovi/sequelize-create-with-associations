@@ -59,7 +59,7 @@ describe("Create", () => {
     });
 
     User.hasOne(Skill, { as: "skill" });
-    Skill.belongsTo(User);
+    Skill.belongsTo(User, { as: "user" });
 
     await mockedSequelize.sync();
 
@@ -70,7 +70,7 @@ describe("Create", () => {
     });
 
     const users = await User.findAll({ include: ["skill"] });
-    const skills = await Skill.findAll();
+    const skills = await Skill.findAll({ include: ["user"] });
 
     expect(users[0].skill).toEqual(
       expect.objectContaining({ name: "Programming" })

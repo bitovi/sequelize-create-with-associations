@@ -62,7 +62,7 @@ export const handleCreateHasOne = async (
   transaction: Transaction,
   isCreateOne = true
 ) => {
-  const key = association.details.otherKey;
+  const key = association.details.key;
 
   if (isCreateOne) {
     const data = {

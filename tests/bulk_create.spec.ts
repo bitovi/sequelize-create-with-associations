@@ -64,4 +64,46 @@ describe("Bulk Create", () => {
       ])
     );
   });
+
+  it("Should create records associated through hasOne", async () => {
+    const User = mockedSequelize.define("User", {
+      name: DataTypes.STRING,
+      age: DataTypes.INTEGER,
+    });
+
+    const Skill = mockedSequelize.define("Skill", {
+      name: DataTypes.STRING,
+    });
+
+    User.hasOne(Skill, { as: "skill" });
+    Skill.belongsTo(User, { as: "user" });
+
+    await mockedSequelize.sync();
+
+    await User.bulkCreate([
+      {
+        name: "Kevin",
+        age: 25,
+        skill: { name: "Dancing" },
+        jobs: [{ title: "Singer" }, { title: "Cooker" }],
+      },
+      {
+        name: "Justin",
+        age: 26,
+        skill: { name: "JiuJitsu" },
+      },
+    ]);
+
+    const users = await User.findAll({ include: ["skill"] });
+    const skills = await Skill.findAll({ include: "user" });
+
+    expect(users).toHaveLength(2);
+    expect(users[0].skill).toEqual(
+      expect.objectContaining({ name: "Dancing" })
+    );
+    expect(users[1].skill).toEqual(
+      expect.objectContaining({ name: "JiuJitsu" })
+    );
+    expect(skills).toHaveLength(2);
+  });
 });
