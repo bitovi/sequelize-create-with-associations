@@ -2,6 +2,7 @@ import { Attributes, ModelStatic, Sequelize, Transaction } from "sequelize";
 import { IAssociation, JSONAnyObject } from "../types";
 import { handleUpdateMany, handleUpdateOne } from "./sequelize.patch";
 import {
+  handleBulkCreateHasOne,
   handleBulkCreateMany,
   handleCreateHasOne,
   handleCreateMany,
@@ -81,7 +82,8 @@ export const handleCreateAssociations = async (
             attributes: associationAttribute,
           },
           { name: model.name, id: modelId },
-          transaction
+          transaction,
+          primaryKey
         );
         break;
       case "HasMany":
@@ -131,7 +133,7 @@ export const handleBulkCreateAssociations = async (
 
     switch (associationDetails.type) {
       case "HasOne":
-        await handleCreateHasOne(
+        await handleBulkCreateHasOne(
           sequelize,
           {
             details: associationDetails,
@@ -139,7 +141,7 @@ export const handleBulkCreateAssociations = async (
           },
           { name: model.name, id: modelIds },
           transaction,
-          false
+          primaryKey,
         );
         break;
       case "HasMany":

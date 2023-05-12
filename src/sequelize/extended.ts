@@ -24,13 +24,12 @@ function calculateAssociationProp(associations) {
     const association = {};
     let propertyName;
     if (Object.hasOwn(associations[key], "options")) {
-      const { associationType, target, foreignKey, otherKey, throughModel } =
+      const { associationType, target, foreignKey, throughModel } =
         associations[key];
       propertyName = key.toLocaleLowerCase();
       association[propertyName] = {
         type: associationType,
         key: foreignKey,
-        otherKey,
         model: target.name,
         joinTable: throughModel,
       };
