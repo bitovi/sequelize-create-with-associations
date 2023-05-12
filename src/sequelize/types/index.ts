@@ -1,6 +1,7 @@
 export interface IAssociation {
   type: string;
   key: string;
+  otherKey: string;
   model: string;
   joinTable?: string;
 }
