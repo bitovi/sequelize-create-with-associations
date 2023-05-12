@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --passWithNoTests --detectOpenHandles --runInBand",
+    "test": "jest --passWithNoTests --detectOpenHandles --runInBand", 
+    "build": "tsc",
     "lint": "eslint ./**/*.{js,ts}",
     "lint:fix": "eslint --fix ./**/*.{js,ts}",
     "pretty": "prettier --check ./**/*.{js,ts}",

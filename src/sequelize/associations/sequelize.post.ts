@@ -1,7 +1,6 @@
 import * as inflection from "inflection";
 import { Attributes, ModelStatic, Sequelize, Transaction } from "sequelize";
-import { JSONAnyObject } from "../../types";
-import { IAssociation, IAssociationBody } from "../types";
+import { IAssociation, IAssociationBody, JSONAnyObject } from "../types";
 
 export const handleCreateBelongs = async (
   model: ModelStatic<any>,

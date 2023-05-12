@@ -1,6 +1,5 @@
 import { Attributes, ModelStatic, Sequelize, Transaction } from "sequelize";
-import { JSONAnyObject } from "../../types";
-import { IAssociation } from "../types";
+import { IAssociation, JSONAnyObject } from "../types";
 import { handleUpdateMany, handleUpdateOne } from "./sequelize.patch";
 import {
   handleBulkCreateMany,
