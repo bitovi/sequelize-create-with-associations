@@ -58,41 +58,44 @@ export const handleBulkCreateBelongs = async (
 export const handleCreateHasOne = async (
   sequelize: Sequelize,
   association: IAssociationBody<JSONAnyObject>,
-  model: { name: string; id: string},
+  model: { name: string; id: string },
   transaction: Transaction,
-  primaryKey = "id",
+  primaryKey = "id"
 ) => {
-    const modelInstance = await sequelize.models[model.name].findByPk(
-      model[primaryKey],
+  const modelInstance = await sequelize.models[model.name].findByPk(
+    model[primaryKey],
+    {
+      transaction,
+    }
+  );
+  if (!modelInstance) {
+    throw new Error("Unable to find Created Model");
+  }
+  let joinId: string | undefined;
+  const isCreate = !association.attributes[primaryKey];
+  if (isCreate) {
+    const model = await sequelize.models[association.details.model].create(
+      association.attributes,
       {
         transaction,
       }
     );
-    if (!modelInstance) {
-      throw new Error("Unable to find Created Model");
-    }
-    let joinId: string | undefined;
-    const isCreate = !association.attributes[primaryKey];
-    if(isCreate) {
-      const model = await sequelize.models[association.details.model].create(association.attributes, {
-        transaction,
-      });
-      joinId = model[primaryKey]
-    }else {
-      joinId = association.attributes[primaryKey]
-    }
+    joinId = model[primaryKey];
+  } else {
+    joinId = association.attributes[primaryKey];
+  }
   const modelName = association.details.model;
-  await modelInstance[`add${modelName}`](joinId, {
+  await modelInstance[`set${modelName}`](joinId, {
     transaction,
   });
-}
+};
 
 export const handleBulkCreateHasOne = async (
   sequelize: Sequelize,
   association: IAssociationBody<Array<JSONAnyObject>>,
-  model: { name: string; id: Array<string>},
+  model: { name: string; id: Array<string> },
   transaction: Transaction,
-  primaryKey = "id",
+  primaryKey = "id"
 ) => {
   const modelInstances = await sequelize.models[model.name].findAll({
     where: {
@@ -105,23 +108,25 @@ export const handleBulkCreateHasOne = async (
   }
   let joinIds: Array<string | undefined> = [];
   const isCreate = !association.attributes[0][primaryKey];
-    if(isCreate) {
-      const associationData = await sequelize.models[association.details.model].bulkCreate(association.attributes, {
-        transaction,
-      });
-      joinIds = associationData.map((data) => data.getDataValue(primaryKey));
-    }else {
-      joinIds = association.attributes.map((data) => data[primaryKey]);
-    }
+  if (isCreate) {
+    const associationData = await sequelize.models[
+      association.details.model
+    ].bulkCreate(association.attributes, {
+      transaction,
+    });
+    joinIds = associationData.map((data) => data.getDataValue(primaryKey));
+  } else {
+    joinIds = association.attributes.map((data) => data[primaryKey]);
+  }
   const modelName = association.details.model;
   let i = 0;
-  for(const modelInstance of modelInstances) {
-    await modelInstance[`add${modelName}`](joinIds[i], {
+  for (const modelInstance of modelInstances) {
+    await modelInstance[`set${modelName}`](joinIds[i], {
       transaction,
     });
     i++;
   }
-}
+};
 
 export const handleCreateMany = async (
   sequelize: Sequelize,
