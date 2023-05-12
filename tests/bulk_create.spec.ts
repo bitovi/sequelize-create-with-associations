@@ -75,8 +75,8 @@ describe("Bulk Create", () => {
       name: DataTypes.STRING,
     });
 
-    User.hasOne(Skill, { as: "skill" });
-    Skill.belongsTo(User, { as: "user" });
+    User.hasOne(Skill);
+    Skill.belongsTo(User);
 
     await mockedSequelize.sync();
 
@@ -85,7 +85,6 @@ describe("Bulk Create", () => {
         name: "Kevin",
         age: 25,
         skill: { name: "Dancing" },
-        jobs: [{ title: "Singer" }, { title: "Cooker" }],
       },
       {
         name: "Justin",
@@ -94,14 +93,14 @@ describe("Bulk Create", () => {
       },
     ]);
 
-    const users = await User.findAll({ include: ["skill"] });
-    const skills = await Skill.findAll({ include: "user" });
+    const users = await User.findAll({ include: ["Skill"] });
+    const skills = await Skill.findAll({ include: "User" });
 
     expect(users).toHaveLength(2);
-    expect(users[0].skill).toEqual(
+    expect(users[0].Skill).toEqual(
       expect.objectContaining({ name: "Dancing" })
     );
-    expect(users[1].skill).toEqual(
+    expect(users[1].Skill).toEqual(
       expect.objectContaining({ name: "JiuJitsu" })
     );
     expect(skills).toHaveLength(2);
