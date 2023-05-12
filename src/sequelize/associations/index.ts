@@ -81,9 +81,7 @@ export const handleCreateAssociations = async (
             attributes: associationAttribute,
           },
           { name: model.name, id: modelId },
-          transaction,
-          primaryKey,
-          true
+          transaction
         );
         break;
       case "HasMany":
@@ -141,7 +139,7 @@ export const handleBulkCreateAssociations = async (
           },
           { name: model.name, id: modelIds },
           transaction,
-          primaryKey
+          false
         );
         break;
       case "HasMany":

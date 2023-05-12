@@ -60,15 +60,14 @@ export const handleCreateHasOne = async (
   association: IAssociationBody<JSONAnyObject | Array<JSONAnyObject>>,
   model: { name: string; id?: string | Array<string> },
   transaction: Transaction,
-  primaryKey = "id",
   isCreateOne = true
 ) => {
-  const key = association.details.key;
+  const key = association.details.otherKey;
 
   if (isCreateOne) {
     const data = {
       ...association.attributes,
-      [key]: model[primaryKey],
+      [key]: model.id,
     };
     await sequelize.models[association.details.model].create(data, {
       transaction,
@@ -76,11 +75,12 @@ export const handleCreateHasOne = async (
   } else {
     let i = 0;
     const data = association.attributes.map((attribute) => {
-      i++;
-      return {
+      const result = {
         ...attribute,
-        [key]: model[i]?.[primaryKey],
+        [key]: model.id ? model.id[i] : undefined,
       };
+      i++;
+      return result;
     });
     await sequelize.models[association.details.model].bulkCreate(data, {
       transaction,
