@@ -139,7 +139,7 @@ describe("Update", () => {
     expect(skills).toHaveLength(3);
   });
 
-  /* it("Should create table and records associated through belongsToMany", async () => {
+  it("Should create table and records associated through belongsToMany", async () => {
     const User = mockedSequelize.define("User", {
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
@@ -168,30 +168,50 @@ describe("Update", () => {
 
     await mockedSequelize.sync();
 
-    await User.create({
+    const user = await User.create({
       name: "Roy",
       age: 33,
-      skills: [{ name: "Programming" }, { name: "Cooking" }],
+      skills: [
+        { name: "Programming" },
+        { name: "Cooking" },
+        { name: "Acting" },
+      ],
     });
+
+    await Skill.create({
+      name: "None",
+    });
+    const firstSkill = await Skill.findOne({
+      where: { name: "Programming" },
+    });
+    const secondSkill = await Skill.findOne({
+      where: { name: "Cooking" },
+    });
+
+    await User.update({ name: "Nau", age: 53 }, { where: { id: user.id } });
+    await Skill.update({ name: "Singing" }, { where: { id: firstSkill.id } });
+    await Skill.update({ name: "Dancing" }, { where: { id: secondSkill.id } });
 
     const users = await User.findAll({ include: ["skills"] });
     const skills = await Skill.findAll();
     const userSkill = await User_Skill.findAll();
 
-    expect(skills).toHaveLength(2);
-    expect(userSkill).toHaveLength(2);
+    expect(skills).toHaveLength(4);
+    expect(userSkill).toHaveLength(3);
     expect(mockedSequelize.models).toHaveProperty("User_Skill");
     expect(users[0].skills).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ name: "Programming" }),
-        expect.objectContaining({ name: "Cooking" }),
+        expect.objectContaining({ name: "Singing" }),
+        expect.objectContaining({ name: "Dancing" }),
+        expect.objectContaining({ name: "Acting" }),
       ])
     );
     expect(userSkill).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({ UserId: 1, SkillId: 1 }),
         expect.objectContaining({ UserId: 1, SkillId: 2 }),
-        expect.objectContaining({ UserId: 1, SkillId: 2 }),
+        expect.objectContaining({ UserId: 1, SkillId: 3 }),
       ])
     );
-  }); */
+  });
 });
