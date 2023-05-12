@@ -1,6 +1,6 @@
 # Sequelize Create With Associations
 
-`@hatchifyjs/sequelize-create-with-associations` is a simple, handy package that extends [Sequelize's](https://sequelize.org/) create and update methods to allow smarter record generations. It lets you automatically create and update associated records without extra code.
+`@hatchifyjs/sequelize-create-with-associations` is a simple, handy package that extends [Sequelize's](https://sequelize.org/) create and update methods to allow smarter record generations. It lets you automatically create, bulkCreate and update records that have relationships to each other without any extra code.
 
 ## Need help or have questions?
 
@@ -11,24 +11,31 @@ This project is supported by [Bitovi, a Node consultancy](https://www.bitovi.com
 
 Or, you can hire us for training, consulting, or development. [Set up a free consultation.](https://www.bitovi.com/services/backend/nodejs-consulting)
 
+## Setup
+
+To install from npm:
+
+```
+npm i @hatchifyjs/sequelize-create-with-associations
+```
+
 ## Basic Use
 
-For basic usage, we will use this simple example:
+After installing @hatchifyjs/sequelize-create-with-associations, import the Sequelize class and extend it with `extendSequelize`
 
 ```js
-//this won't look like this tho, it will be something we extend off; gotta review
 const { Sequelize } = require("sequelize");
 const extendSequelize = require("@hatchifyjs/sequelize-create-with-associations");
 
+//extend sequelize
+extendSequelize(sequelize);
+
+//create your sequelize instance
 const sequelize = new Sequelize({
   ...config,
 });
 
-// create models first
-
-extendSequelize(sequelize);
-
-// define models
+// define your models
 const User = sequelize.define("User", {
   name: DataTypes.STRING,
 });
@@ -40,8 +47,10 @@ const Skill = sequelize.define("Skill", {
 User.hasMany(Skill);
 Skill.belongsTo(User);
 
-// connect sequelize
+//synchronize your models
+await mockedSequelize.sync();
 
+// create a record with associated data
 await User.create({
   name: "Roy",
   skills: [
@@ -51,14 +60,6 @@ await User.create({
   ],
 });
 // It should work on the fly.
-```
-
-## Setup
-
-To install from npm:
-
-```
-npm i @hatchifyjs/sequelize-create-with-associations
 ```
 
 ## How it works
