@@ -50,7 +50,6 @@ function getLookup(sequelize): AssociationLookup {
     lookup[key] = associations;
   });
   associationsLookup = lookup;
-  /* }  */
   return associationsLookup;
 }
 
