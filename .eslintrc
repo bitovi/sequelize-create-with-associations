@@ -12,9 +12,11 @@
   ],
 
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"], 
+  "plugins": ["@typescript-eslint"],
   "rules": {
     "@typescript-eslint/quotes": [2, "double", { "avoidEscape": true }],
-    "no-unused-vars": ["error", { "varsIgnorePattern": "^[_]" }]
+    "no-unused-vars": ["error", { "varsIgnorePattern": "^[_]" }],
+    "@typescript-eslint/no-prototype-builtins": ["off"],
+    "no-prototype-builtins": ["off"]
   }
 }
