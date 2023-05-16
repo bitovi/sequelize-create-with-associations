@@ -141,7 +141,7 @@ export const handleBulkCreateAssociations = async (
           },
           { name: model.name, id: modelIds },
           transaction,
-          primaryKey,
+          primaryKey
         );
         break;
       case "HasMany":
