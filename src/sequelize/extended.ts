@@ -22,9 +22,9 @@ function calculateAssociationProp(associations) {
 
   Object.keys(associations).forEach((key) => {
     const association = {};
-    let propertyName; 
+    let propertyName;
 
-    if (associations[key].hasOwnProperty('options')) {
+    if (associations[key].hasOwnProperty("options")) {
       const { associationType, target, foreignKey, throughModel } =
         associations[key];
       propertyName = key.toLocaleLowerCase();
