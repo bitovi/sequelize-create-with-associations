@@ -21,11 +21,11 @@ npm i @hatchifyjs/sequelize-create-with-associations
 
 ## Basic Use
 
-After installing @hatchifyjs/sequelize-create-with-associations, import the Sequelize class and extend it with `extendSequelize`
+After installing @bitovi/sequelize-create-with-associations, import the Sequelize class and extend it with `extendSequelize`
 
 ```js
 const { Sequelize } = require("sequelize");
-const extendSequelize = require("@hatchifyjs/sequelize-create-with-associations");
+const extendSequelize = require("@bitovi/sequelize-create-with-associations");
 
 //extend sequelize
 extendSequelize(sequelize);
