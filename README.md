@@ -1,6 +1,6 @@
 # Sequelize Create With Associations
 
-`@hatchifyjs/sequelize-create-with-associations` is a simple, handy package that extends [Sequelize's](https://sequelize.org/) create and update methods to allow smarter record generations. It lets you automatically create, bulkCreate and update records that have relationships to each other without any extra code.
+`sequelize-create-with-associations` is a simple, handy package that extends [Sequelize's](https://sequelize.org/) create and update methods to allow smarter record generations. It lets you automatically create, bulkCreate and update records that have relationships to each other without any extra code.
 
 ## Need help or have questions?
 
@@ -16,24 +16,24 @@ Or, you can hire us for training, consulting, or development. [Set up a free con
 To install from npm:
 
 ```
-npm i @hatchifyjs/sequelize-create-with-associations
+npm i sequelize-create-with-associations
 ```
 
 ## Basic Use
 
-After installing @hatchifyjs/sequelize-create-with-associations, import the Sequelize class and extend it with `extendSequelize`
+After installing sequelize-create-with-associations, import the Sequelize class and extend it with `extendSequelize`
 
 ```js
 const { Sequelize } = require("sequelize");
-const extendSequelize = require("@hatchifyjs/sequelize-create-with-associations");
+const extendSequelize = require("sequelize-create-with-associations");
 
 //extend sequelize
-extendSequelize(sequelize);
+extendSequelize(Sequelize);
 
 //create your sequelize instance
-const sequelize = new Sequelize({
-  ...config,
-});
+const sequelize = new Sequelize(("sqlite::memory:", {
+  logging: false,
+}));
 
 // define your models
 const User = sequelize.define("User", {
@@ -48,9 +48,9 @@ User.hasMany(Skill);
 Skill.belongsTo(User);
 
 //synchronize your models
-await mockedSequelize.sync();
+await sequelize.sync();
 
-// create a record with associated data
+// create a record and associated data
 await User.create({
   name: "Roy",
   skills: [
@@ -59,7 +59,8 @@ await User.create({
     },
   ],
 });
-//or
+
+//or associate existing data
 await User.create({
   name: "Roy",
   skills: [
@@ -76,7 +77,7 @@ await User.create({
 
 Check out our [full API documentation](docs/api.md).
 
-`sequelize-create-with-associations` updates your Sequelize instance and extends all it's basic creation methods to behave in a smarter way.
+`sequelize-create-with-associations` updates your Sequelize instance and extends all its basic creation methods to behave in a smarter way.
 
 # We want to hear from you.
 
