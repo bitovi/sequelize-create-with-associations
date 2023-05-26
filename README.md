@@ -60,7 +60,7 @@ await User.create({
   ],
 });
 
-//or associate existing data
+// or associate existing data
 await User.create({
   name: "Roy",
   skills: [
