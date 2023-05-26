@@ -1,6 +1,6 @@
 # Sequelize Create With Associations
 
-`sequelize-create-with-associations` is a simple, handy package that extends [Sequelize's](https://sequelize.org/) create and update methods to allow smarter record generations. It lets you automatically create, bulkCreate and update records that have relationships to each other without any extra code.
+`@hatchifyjs/sequelize-create-with-associations` is a simple, handy package that extends [Sequelize's](https://sequelize.org/) create and update methods to allow smarter record generations. It lets you automatically create, bulkCreate and update records that have relationships to each other without any extra code.
 
 ## Need help or have questions?
 
@@ -16,16 +16,16 @@ Or, you can hire us for training, consulting, or development. [Set up a free con
 To install from npm:
 
 ```
-npm i sequelize-create-with-associations
+npm i @hatchifyjs/sequelize-create-with-associations
 ```
 
 ## Basic Use
 
-After installing sequelize-create-with-associations, import the Sequelize class and extend it with `extendSequelize`
+After installing @hatchifyjs/sequelize-create-with-associations, import the Sequelize class and extend it with `extendSequelize`
 
 ```js
 const { Sequelize } = require("sequelize");
-const extendSequelize = require("sequelize-create-with-associations");
+const extendSequelize = require("@hatchifyjs/sequelize-create-with-associations");
 
 //extend sequelize
 extendSequelize(Sequelize);
