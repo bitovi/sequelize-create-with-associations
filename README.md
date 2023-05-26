@@ -28,12 +28,12 @@ const { Sequelize } = require("sequelize");
 const extendSequelize = require("@hatchifyjs/sequelize-create-with-associations");
 
 //extend sequelize
-extendSequelize(sequelize);
+extendSequelize(Sequelize);
 
 //create your sequelize instance
-const sequelize = new Sequelize({
-  ...config,
-});
+const sequelize = new Sequelize(("sqlite::memory:", {
+  logging: false,
+}));
 
 // define your models
 const User = sequelize.define("User", {
@@ -48,9 +48,9 @@ User.hasMany(Skill);
 Skill.belongsTo(User);
 
 //synchronize your models
-await mockedSequelize.sync();
+await sequelize.sync();
 
-// create a record with associated data
+// create a record and associated data
 await User.create({
   name: "Roy",
   skills: [
@@ -59,7 +59,8 @@ await User.create({
     },
   ],
 });
-//or
+
+// or associate existing data
 await User.create({
   name: "Roy",
   skills: [
@@ -74,9 +75,7 @@ await User.create({
 
 ## How it works
 
-Check out our [full API documentation](docs/api.md).
-
-`sequelize-create-with-associations` updates your Sequelize instance and extends all it's basic creation methods to behave in a smarter way.
+`sequelize-create-with-associations` updates your Sequelize instance and extends all its basic creation methods to behave in a smarter way.
 
 # We want to hear from you.
 
