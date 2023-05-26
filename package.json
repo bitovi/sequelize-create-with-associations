@@ -1,5 +1,5 @@
 {
-  "name": "sequelize-create-with-associations",
+  "name": "@hatchifyjs/sequelize-create-with-associations",
   "version": "0.1.0",
   "description": "",
   "main": "dist/index.js",
