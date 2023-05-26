@@ -75,8 +75,6 @@ await User.create({
 
 ## How it works
 
-Check out our [full API documentation](docs/api.md).
-
 `sequelize-create-with-associations` updates your Sequelize instance and extends all its basic creation methods to behave in a smarter way.
 
 # We want to hear from you.
