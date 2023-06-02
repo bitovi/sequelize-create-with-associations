@@ -1,11 +1,12 @@
 import { Sequelize, DataTypes } from "sequelize";
 import * as dotenv from "dotenv";
 import { extendSequelize } from "../src/sequelize/extended";
+import type { SingleSkillUserModel, SkillModel, UserModel } from "./types";
 
 dotenv.config();
 
 describe("Bulk Create", () => {
-  let mockedSequelize: any;
+  let mockedSequelize: Sequelize;
 
   beforeAll(async () => {
     await extendSequelize(Sequelize);
@@ -24,7 +25,8 @@ describe("Bulk Create", () => {
     await mockedSequelize.close();
   });
   it("Should bulkCreate and return records", async () => {
-    const User = mockedSequelize.define("User", {
+    const User = mockedSequelize.define<UserModel>("User", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
@@ -60,12 +62,14 @@ describe("Bulk Create", () => {
   });
 
   it("Should create records associated through hasOne", async () => {
-    const User = mockedSequelize.define("User", {
+    const User = mockedSequelize.define<SingleSkillUserModel>("User", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    const Skill = mockedSequelize.define("Skill", {
+    const Skill = mockedSequelize.define<SkillModel>("Skill", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
     });
 

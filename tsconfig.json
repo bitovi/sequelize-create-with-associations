@@ -1,12 +1,11 @@
 {
   "compilerOptions": {
     "outDir": "dist",
-    "module": "commonjs",
-    "target": "es2019",
+    "module": "CommonJS",
+    "target": "ES2019",
     "esModuleInterop": true,
-    "allowJs": true,
-    "strictNullChecks": true, 
-    "lib": ["esnext", "dom"]
+    "strictNullChecks": true,
+    "lib": ["ESNext"]
   },
   "include": ["./src/**/*"],
   "exclude": ["./dist/**/*", "./bin/**/*", "node_modules"]

@@ -1,11 +1,12 @@
 import { Sequelize, DataTypes } from "sequelize";
 import * as dotenv from "dotenv";
 import { extendSequelize } from "../src/sequelize/extended";
+import type { SingleSkillUserModel, SkillModel, UserModel } from "./types";
 
 dotenv.config();
 
 describe("Update", () => {
-  let mockedSequelize: any;
+  let mockedSequelize: Sequelize;
 
   beforeAll(async () => {
     await extendSequelize(Sequelize);
@@ -24,7 +25,8 @@ describe("Update", () => {
     await mockedSequelize.close();
   });
   it("Should update a record", async () => {
-    const User = mockedSequelize.define("User", {
+    const User = mockedSequelize.define<UserModel>("User", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
@@ -46,12 +48,14 @@ describe("Update", () => {
   });
 
   it("Should create records associated through hasOne", async () => {
-    const User = mockedSequelize.define("User", {
+    const User = mockedSequelize.define<SingleSkillUserModel>("User", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    const Skill = mockedSequelize.define("Skill", {
+    const Skill = mockedSequelize.define<SkillModel>("Skill", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
     });
 
@@ -69,7 +73,7 @@ describe("Update", () => {
     const skill = await Skill.findOne({ where: { name: "Programming" } });
 
     await User.update({ name: "Nau", age: 53 }, { where: { id: user.id } });
-    await Skill.update({ name: "Singing" }, { where: { id: skill.id } });
+    await Skill.update({ name: "Singing" }, { where: { id: skill?.id } });
 
     const users = await User.findAll({ include: ["skill"] });
     const skills = await Skill.findAll();
@@ -81,12 +85,14 @@ describe("Update", () => {
     expect(skills).toHaveLength(1);
   });
   it("Should create records associated through hasMany", async () => {
-    const User = mockedSequelize.define("User", {
+    const User = mockedSequelize.define<UserModel>("User", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    const Skill = mockedSequelize.define("Skill", {
+    const Skill = mockedSequelize.define<SkillModel>("Skill", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
     });
 
@@ -116,8 +122,8 @@ describe("Update", () => {
     });
 
     await User.update({ name: "Nau", age: 53 }, { where: { id: user.id } });
-    await Skill.update({ name: "Singing" }, { where: { id: firstSkill.id } });
-    await Skill.update({ name: "Dancing" }, { where: { id: secondSkill.id } });
+    await Skill.update({ name: "Singing" }, { where: { id: firstSkill?.id } });
+    await Skill.update({ name: "Dancing" }, { where: { id: secondSkill?.id } });
 
     const users = await User.findAll({ include: ["skills"] });
     const skills = await Skill.findAll();
@@ -134,12 +140,14 @@ describe("Update", () => {
   });
 
   it("Should create table and records associated through belongsToMany", async () => {
-    const User = mockedSequelize.define("User", {
+    const User = mockedSequelize.define<UserModel>("User", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    const Skill = mockedSequelize.define("Skill", {
+    const Skill = mockedSequelize.define<SkillModel>("Skill", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
     });
 
@@ -183,8 +191,8 @@ describe("Update", () => {
     });
 
     await User.update({ name: "Nau", age: 53 }, { where: { id: user.id } });
-    await Skill.update({ name: "Singing" }, { where: { id: firstSkill.id } });
-    await Skill.update({ name: "Dancing" }, { where: { id: secondSkill.id } });
+    await Skill.update({ name: "Singing" }, { where: { id: firstSkill?.id } });
+    await Skill.update({ name: "Dancing" }, { where: { id: secondSkill?.id } });
 
     const users = await User.findAll({ include: ["skills"] });
     const skills = await Skill.findAll();

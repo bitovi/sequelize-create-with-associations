@@ -1,11 +1,17 @@
 import { Sequelize, DataTypes } from "sequelize";
 import * as dotenv from "dotenv";
 import { extendSequelize } from "../src/sequelize/extended";
+import type {
+  SingleSkillUserModel,
+  SkillModel,
+  UserModel,
+  UserSkillModel,
+} from "./types";
 
 dotenv.config();
 
 describe("Create", () => {
-  let mockedSequelize: any;
+  let mockedSequelize: Sequelize;
 
   beforeAll(async () => {
     await extendSequelize(Sequelize);
@@ -24,7 +30,8 @@ describe("Create", () => {
     await mockedSequelize.close();
   });
   it("Should create and return record", async () => {
-    const User = mockedSequelize.define("User", {
+    const User = mockedSequelize.define<UserModel>("User", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
@@ -43,12 +50,14 @@ describe("Create", () => {
   });
 
   it("Should create records associated through hasOne", async () => {
-    const User = mockedSequelize.define("User", {
+    const User = mockedSequelize.define<SingleSkillUserModel>("User", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    const Skill = mockedSequelize.define("Skill", {
+    const Skill = mockedSequelize.define<SkillModel>("Skill", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
     });
 
@@ -72,12 +81,14 @@ describe("Create", () => {
     expect(skills).toHaveLength(1);
   });
   it("Should create records associated through hasMany", async () => {
-    const User = mockedSequelize.define("User", {
+    const User = mockedSequelize.define<UserModel>("User", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    const Skill = mockedSequelize.define("Skill", {
+    const Skill = mockedSequelize.define<SkillModel>("Skill", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
     });
 
@@ -108,16 +119,18 @@ describe("Create", () => {
   });
 
   it("Should create table and records associated through belongsToMany", async () => {
-    const User = mockedSequelize.define("User", {
+    const User = mockedSequelize.define<UserModel>("User", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    const Skill = mockedSequelize.define("Skill", {
+    const Skill = mockedSequelize.define<SkillModel>("Skill", {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
     });
 
-    const User_Skill = mockedSequelize.define(
+    const User_Skill = mockedSequelize.define<UserSkillModel>(
       "User_Skill",
       {
         id: {
