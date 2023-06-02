@@ -5,7 +5,7 @@ import { extendSequelize } from "../src/sequelize/extended";
 dotenv.config();
 
 describe("Update", () => {
-  let mockedSequelize: Sequelize;
+  let mockedSequelize: any;
 
   beforeAll(async () => {
     await extendSequelize(Sequelize);
