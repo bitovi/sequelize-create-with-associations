@@ -31,9 +31,9 @@ const extendSequelize = require("@hatchifyjs/sequelize-create-with-associations"
 extendSequelize(Sequelize);
 
 //create your sequelize instance
-const sequelize = new Sequelize(("sqlite::memory:", {
+const sequelize = new Sequelize("sqlite::memory:", {
   logging: false,
-}));
+});
 
 // define your models
 const User = sequelize.define("User", {
