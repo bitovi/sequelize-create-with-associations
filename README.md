@@ -1,3 +1,5 @@
+![publish workflow](https://github.com/bitovi/sequelize-create-with-associations/actions/workflows/publish.yml/badge.svg)
+
 # Sequelize Create With Associations
 
 `@hatchifyjs/sequelize-create-with-associations` is a simple, handy package that extends [Sequelize's](https://sequelize.org/) create and update methods to allow smarter record generations. It lets you automatically create, bulkCreate and update records that have relationships to each other without any extra code.
