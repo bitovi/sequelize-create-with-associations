@@ -6,32 +6,32 @@ import type { SingleSkillUserModel, SkillModel, UserModel } from "./types";
 dotenv.config();
 
 describe("Bulk Create", () => {
-  let mockedSequelize: Sequelize;
+  let sequelize: Sequelize;
 
   beforeAll(async () => {
     await extendSequelize(Sequelize);
 
-    mockedSequelize = new Sequelize("sqlite::memory:", {
+    sequelize = new Sequelize("sqlite::memory:", {
       logging: false,
     });
   });
 
   afterEach(async () => {
-    await mockedSequelize.drop();
+    await sequelize.drop();
     jest.clearAllMocks();
   });
 
   afterAll(async () => {
-    await mockedSequelize.close();
+    await sequelize.close();
   });
   it("Should bulkCreate and return records", async () => {
-    const User = mockedSequelize.define<UserModel>("User", {
+    const User = sequelize.define<UserModel>("User", {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    await mockedSequelize.sync();
+    await sequelize.sync();
 
     await User.bulkCreate([
       {
@@ -62,13 +62,13 @@ describe("Bulk Create", () => {
   });
 
   it("Should create records associated through hasOne", async () => {
-    const User = mockedSequelize.define<SingleSkillUserModel>("User", {
+    const User = sequelize.define<SingleSkillUserModel>("User", {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    const Skill = mockedSequelize.define<SkillModel>("Skill", {
+    const Skill = sequelize.define<SkillModel>("Skill", {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
     });
@@ -76,7 +76,7 @@ describe("Bulk Create", () => {
     User.hasOne(Skill, { as: "skill", foreignKey: "userId" });
     Skill.belongsTo(User, { as: "user" });
 
-    await mockedSequelize.sync();
+    await sequelize.sync();
 
     await User.bulkCreate([
       {

@@ -1,37 +1,43 @@
 import { Sequelize, DataTypes } from "sequelize";
 import * as dotenv from "dotenv";
 import { extendSequelize } from "../src/sequelize/extended";
-import type { SingleSkillUserModel, SkillModel, UserModel } from "./types";
+import type {
+  SingleSkillUserModel,
+  SkillModel,
+  UserModel,
+  UserSkillModel,
+} from "./types";
 
 dotenv.config();
 
 describe("Update", () => {
-  let mockedSequelize: Sequelize;
+  let sequelize: Sequelize;
 
   beforeAll(async () => {
     await extendSequelize(Sequelize);
 
-    mockedSequelize = new Sequelize("sqlite::memory:", {
+    sequelize = new Sequelize("sqlite::memory:", {
       logging: false,
     });
   });
 
   afterEach(async () => {
-    await mockedSequelize.drop();
+    await sequelize.drop();
     jest.clearAllMocks();
   });
 
   afterAll(async () => {
-    await mockedSequelize.close();
+    await sequelize.close();
   });
+
   it("Should update a record", async () => {
-    const User = mockedSequelize.define<UserModel>("User", {
+    const User = sequelize.define<UserModel>("User", {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    await mockedSequelize.sync();
+    await sequelize.sync();
 
     const user = await User.create({
       name: "Roy",
@@ -40,29 +46,31 @@ describe("Update", () => {
 
     await User.update({ name: "Nau", age: 53 }, { where: { id: user.id } });
 
-    const users = await User.findAll();
+    const [updatedUser] = await User.findAll();
 
     expect(user).toEqual(expect.objectContaining({ name: "Roy", age: 33 }));
 
-    expect(users[0]).toEqual(expect.objectContaining({ name: "Nau", age: 53 }));
+    expect(updatedUser).toEqual(
+      expect.objectContaining({ name: "Nau", age: 53 })
+    );
   });
 
   it("Should create records associated through hasOne", async () => {
-    const User = mockedSequelize.define<SingleSkillUserModel>("User", {
+    const User = sequelize.define<SingleSkillUserModel>("User", {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    const Skill = mockedSequelize.define<SkillModel>("Skill", {
+    const Skill = sequelize.define<SkillModel>("Skill", {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
     });
 
-    User.hasOne(Skill, { as: "skill" });
+    User.hasOne(Skill);
     Skill.belongsTo(User);
 
-    await mockedSequelize.sync();
+    await sequelize.sync();
 
     const user = await User.create({
       name: "Roy",
@@ -70,28 +78,29 @@ describe("Update", () => {
       skill: { name: "Programming" },
     });
 
-    const skill = await Skill.findOne({ where: { name: "Programming" } });
+    await User.update(
+      { name: "Nau", age: 53, skill: { name: "Testing" } },
+      { where: { id: user.id } }
+    );
 
-    await User.update({ name: "Nau", age: 53 }, { where: { id: user.id } });
-    await Skill.update({ name: "Singing" }, { where: { id: skill?.id } });
-
-    const users = await User.findAll({ include: ["skill"] });
+    const users = await User.findAll({ include: ["Skill"] });
     const skills = await Skill.findAll();
 
     expect(users[0]).toEqual(expect.objectContaining({ name: "Nau", age: 53 }));
-    expect(users[0].skill).toEqual(
-      expect.objectContaining({ name: "Singing" })
+    expect(users[0].Skill).toEqual(
+      expect.objectContaining({ name: "Testing" })
     );
     expect(skills).toHaveLength(1);
   });
+
   it("Should create records associated through hasMany", async () => {
-    const User = mockedSequelize.define<UserModel>("User", {
+    const User = sequelize.define<UserModel>("User", {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    const Skill = mockedSequelize.define<SkillModel>("Skill", {
+    const Skill = sequelize.define<SkillModel>("Skill", {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
     });
@@ -102,56 +111,70 @@ describe("Update", () => {
 
     Skill.belongsTo(User);
 
-    await mockedSequelize.sync();
+    await sequelize.sync();
 
     const user = await User.create({
       name: "Roy",
       age: 33,
       skills: [
-        { name: "Programming" },
-        { name: "Cooking" },
         { name: "Acting" },
+        { name: "Cooking" },
+        { name: "Programming" },
       ],
     });
 
-    const firstSkill = await Skill.findOne({
-      where: { name: "Programming" },
-    });
-    const secondSkill = await Skill.findOne({
-      where: { name: "Cooking" },
-    });
+    const [cooking, programming, testing] = await Promise.all([
+      Skill.findOne({
+        where: { name: "Cooking" },
+      }),
+      Skill.findOne({
+        where: { name: "Programming" },
+      }),
+      Skill.create({
+        name: "Testing",
+      }),
+    ]);
 
-    await User.update({ name: "Nau", age: 53 }, { where: { id: user.id } });
-    await Skill.update({ name: "Singing" }, { where: { id: firstSkill?.id } });
-    await Skill.update({ name: "Dancing" }, { where: { id: secondSkill?.id } });
+    await User.update(
+      {
+        name: "Nau",
+        age: 53,
+        skills: [
+          { id: cooking?.id },
+          { id: programming?.id },
+          { id: testing.id },
+        ],
+      },
+      { where: { id: user.id } }
+    );
 
-    const users = await User.findAll({ include: ["skills"] });
+    const [updatedUser] = await User.findAll({ include: ["skills"] });
     const skills = await Skill.findAll();
 
-    expect(users[0]).toEqual(expect.objectContaining({ name: "Nau", age: 53 }));
-    expect(users[0].skills).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ name: "Singing" }),
-        expect.objectContaining({ name: "Dancing" }),
-        expect.objectContaining({ name: "Acting" }),
-      ])
+    expect(updatedUser).toEqual(
+      expect.objectContaining({ name: "Nau", age: 53 })
     );
-    expect(skills).toHaveLength(3);
+    expect(updatedUser.skills?.map((skill) => skill.name).sort()).toEqual([
+      "Cooking",
+      "Programming",
+      "Testing",
+    ]);
+    expect(skills).toHaveLength(4);
   });
 
   it("Should create table and records associated through belongsToMany", async () => {
-    const User = mockedSequelize.define<UserModel>("User", {
+    const User = sequelize.define<UserModel>("User", {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
       age: DataTypes.INTEGER,
     });
 
-    const Skill = mockedSequelize.define<SkillModel>("Skill", {
+    const Skill = sequelize.define<SkillModel>("Skill", {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: DataTypes.STRING,
     });
 
-    const User_Skill = mockedSequelize.define(
+    const User_Skill = sequelize.define<UserSkillModel>(
       "User_Skill",
       {
         id: {
@@ -168,52 +191,57 @@ describe("Update", () => {
     User.belongsToMany(Skill, { as: "skills", through: User_Skill });
     Skill.belongsToMany(User, { through: User_Skill });
 
-    await mockedSequelize.sync();
+    await sequelize.sync();
 
     const user = await User.create({
       name: "Roy",
       age: 33,
       skills: [
-        { name: "Programming" },
-        { name: "Cooking" },
         { name: "Acting" },
+        { name: "Cooking" },
+        { name: "Programming" },
       ],
     });
 
-    await Skill.create({
-      name: "None",
-    });
-    const firstSkill = await Skill.findOne({
-      where: { name: "Programming" },
-    });
-    const secondSkill = await Skill.findOne({
-      where: { name: "Cooking" },
-    });
+    const [cooking, programming, testing] = await Promise.all([
+      Skill.findOne({
+        where: { name: "Cooking" },
+      }),
+      Skill.findOne({
+        where: { name: "Programming" },
+      }),
+      Skill.create({
+        name: "Testing",
+      }),
+    ]);
 
-    await User.update({ name: "Nau", age: 53 }, { where: { id: user.id } });
-    await Skill.update({ name: "Singing" }, { where: { id: firstSkill?.id } });
-    await Skill.update({ name: "Dancing" }, { where: { id: secondSkill?.id } });
+    await User.update(
+      {
+        name: "Nau",
+        age: 53,
+        skills: [
+          { id: programming?.id },
+          { id: cooking?.id },
+          { id: testing.id },
+        ],
+      },
+      { where: { id: user.id } }
+    );
 
-    const users = await User.findAll({ include: ["skills"] });
+    const [updatedUser] = await User.findAll({ include: ["skills"] });
     const skills = await Skill.findAll();
-    const userSkill = await User_Skill.findAll();
+    const userSkill = await User_Skill.findAll({ where: { UserId: 1 } });
 
     expect(skills).toHaveLength(4);
     expect(userSkill).toHaveLength(3);
-    expect(mockedSequelize.models).toHaveProperty("User_Skill");
-    expect(users[0].skills).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ name: "Singing" }),
-        expect.objectContaining({ name: "Dancing" }),
-        expect.objectContaining({ name: "Acting" }),
-      ])
-    );
-    expect(userSkill).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ UserId: 1, SkillId: 1 }),
-        expect.objectContaining({ UserId: 1, SkillId: 2 }),
-        expect.objectContaining({ UserId: 1, SkillId: 3 }),
-      ])
+    expect(sequelize.models).toHaveProperty("User_Skill");
+    expect(updatedUser.skills?.map((skill) => skill.name).sort()).toEqual([
+      "Cooking",
+      "Programming",
+      "Testing",
+    ]);
+    expect(userSkill.map((skill) => skill.SkillId).sort()).toEqual(
+      [cooking?.id, programming?.id, testing.id].sort()
     );
   });
 });

@@ -44,7 +44,9 @@ const Skill = sequelize.define("Skill", {
   name: DataTypes.STRING,
 });
 
-User.hasMany(Skill);
+User.hasMany(Skill, {
+  as: "skills",
+});
 Skill.belongsTo(User);
 
 //synchronize your models
@@ -61,11 +63,15 @@ await User.create({
 });
 
 // or associate existing data
+await Skill.create({
+  id: 2,
+  name: "Testing",
+});
 await User.create({
-  name: "Roy",
+  name: "Nau",
   skills: [
     {
-      id: "0661f6f2-f0d8-11ed-a05b-0242ac120003",
+      id: 2,
     },
   ],
 });

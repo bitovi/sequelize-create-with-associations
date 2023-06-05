@@ -1,5 +1,11 @@
-import { Model, CreateOptions, Attributes, UpdateOptions } from "sequelize";
-import { Col, Fn, Literal, MakeNullishOptional } from "sequelize/types/utils";
+import { Model } from "sequelize";
+import type { CreateOptions, Attributes, UpdateOptions } from "sequelize";
+import type {
+  Col,
+  Fn,
+  Literal,
+  MakeNullishOptional,
+} from "sequelize/types/utils";
 import {
   getValidAttributesAndAssociations,
   handleBulkCreateAssociations,
@@ -10,7 +16,7 @@ import {
   handleBulkCreateBelongs,
   handleCreateBelongs,
 } from "./associations/sequelize.post";
-import { IAssociation } from "./types";
+import type { IAssociation } from "./types";
 import { handleUpdateBelongs } from "./associations/sequelize.patch";
 
 type AssociationLookup = Record<string, Record<string, IAssociation>>;
@@ -245,10 +251,7 @@ export const extendSequelize = async (SequelizeClass: any) => {
     const associations = getLookup(sequelize)[this.name];
     const modelPrimaryKey = this.primaryKeyAttribute;
 
-    if (!ops.where?.[modelPrimaryKey]) {
-      throw new Error("Primary key does not exist");
-    }
-    const modelId = ops.where[modelPrimaryKey];
+    const modelId = ops.where?.[modelPrimaryKey];
     let modelUpdateData: [affectedCount: number, affectedRows: M[]] | undefined;
     let currentModelAttributes = attributes;
 
@@ -267,6 +270,8 @@ export const extendSequelize = async (SequelizeClass: any) => {
     // If there are no associations, create the model with all attributes.
     if (validAssociationsInAttributes.length === 0) {
       return origUpdate.apply(this, [attributes, ops]);
+    } else if (!modelId) {
+      throw new Error("Primary key does not exist");
     }
 
     const transaction = await this.sequelize.transaction();
