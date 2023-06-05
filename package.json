@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "test": "jest --coverage --detectOpenHandles --runInBand",
+    "test": "jest --coverage --detectOpenHandles",
     "build": "tsc",
     "lint": "eslint ./**/*.ts",
     "lint:fix": "eslint --fix ./**/*.ts"
