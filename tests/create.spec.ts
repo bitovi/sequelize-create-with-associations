@@ -76,7 +76,7 @@ describe("Create", () => {
     const skills = await Skill.findAll({ include: ["user"] });
 
     expect(users[0].skill).toEqual(
-      expect.objectContaining({ name: "Programming" })
+      expect.objectContaining({ name: "Programming" }),
     );
     expect(skills).toHaveLength(1);
   });
@@ -113,7 +113,7 @@ describe("Create", () => {
       expect.arrayContaining([
         expect.objectContaining({ name: "Programming" }),
         expect.objectContaining({ name: "Cooking" }),
-      ])
+      ]),
     );
     expect(skills).toHaveLength(2);
   });
@@ -141,7 +141,7 @@ describe("Create", () => {
         },
         selfGranted: DataTypes.BOOLEAN,
       },
-      { timestamps: false }
+      { timestamps: false },
     );
 
     User.belongsToMany(Skill, { as: "skills", through: User_Skill });
@@ -166,13 +166,13 @@ describe("Create", () => {
       expect.arrayContaining([
         expect.objectContaining({ name: "Programming" }),
         expect.objectContaining({ name: "Cooking" }),
-      ])
+      ]),
     );
     expect(userSkill).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ UserId: 1, SkillId: 2 }),
         expect.objectContaining({ UserId: 1, SkillId: 2 }),
-      ])
+      ]),
     );
   });
 });

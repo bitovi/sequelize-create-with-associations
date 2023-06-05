@@ -51,7 +51,7 @@ describe("Update", () => {
     expect(user).toEqual(expect.objectContaining({ name: "Roy", age: 33 }));
 
     expect(updatedUser).toEqual(
-      expect.objectContaining({ name: "Nau", age: 53 })
+      expect.objectContaining({ name: "Nau", age: 53 }),
     );
   });
 
@@ -80,7 +80,7 @@ describe("Update", () => {
 
     await User.update(
       { name: "Nau", age: 53, skill: { name: "Testing" } },
-      { where: { id: user.id } }
+      { where: { id: user.id } },
     );
 
     const users = await User.findAll({ include: ["Skill"] });
@@ -88,7 +88,7 @@ describe("Update", () => {
 
     expect(users[0]).toEqual(expect.objectContaining({ name: "Nau", age: 53 }));
     expect(users[0].Skill).toEqual(
-      expect.objectContaining({ name: "Testing" })
+      expect.objectContaining({ name: "Testing" }),
     );
     expect(skills).toHaveLength(1);
   });
@@ -145,14 +145,14 @@ describe("Update", () => {
           { id: testing.id },
         ],
       },
-      { where: { id: user.id } }
+      { where: { id: user.id } },
     );
 
     const [updatedUser] = await User.findAll({ include: ["skills"] });
     const skills = await Skill.findAll();
 
     expect(updatedUser).toEqual(
-      expect.objectContaining({ name: "Nau", age: 53 })
+      expect.objectContaining({ name: "Nau", age: 53 }),
     );
     expect(updatedUser.skills?.map((skill) => skill.name).sort()).toEqual([
       "Cooking",
@@ -185,7 +185,7 @@ describe("Update", () => {
         },
         selfGranted: DataTypes.BOOLEAN,
       },
-      { timestamps: false }
+      { timestamps: false },
     );
 
     User.belongsToMany(Skill, { as: "skills", through: User_Skill });
@@ -225,7 +225,7 @@ describe("Update", () => {
           { id: testing.id },
         ],
       },
-      { where: { id: user.id } }
+      { where: { id: user.id } },
     );
 
     const [updatedUser] = await User.findAll({ include: ["skills"] });
@@ -241,7 +241,7 @@ describe("Update", () => {
       "Testing",
     ]);
     expect(userSkill.map((skill) => skill.SkillId).sort()).toEqual(
-      [cooking?.id, programming?.id, testing.id].sort()
+      [cooking?.id, programming?.id, testing.id].sort(),
     );
   });
 });
