@@ -6,5 +6,21 @@
     "jest": true
   },
   "root": true,
-  "extends": "@bitovi/eslint-config/node"
+  "extends": ["@bitovi/eslint-config/node", "prettier"],
+  "plugins": ["prettier"],
+  "rules": {
+    "prettier/prettier": [
+      "error",
+      {
+        "bracketSpacing": true,
+        "endOfLine": "lf",
+        "parser": "typescript",
+        "printWidth": 80,
+        "semi": true,
+        "singleQuote": false,
+        "trailingComma": "all",
+        "useTabs": false
+      }
+    ]
+  }
 }

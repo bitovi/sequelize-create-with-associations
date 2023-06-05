@@ -57,7 +57,7 @@ describe("Bulk Create", () => {
           name: "Kevin",
           age: 32,
         }),
-      ])
+      ]),
     );
   });
 
@@ -97,16 +97,16 @@ describe("Bulk Create", () => {
     expect(users).toHaveLength(2);
     expect(skills).toHaveLength(2);
     expect(users[0].skill).toEqual(
-      expect.objectContaining({ name: "Dancing" })
+      expect.objectContaining({ name: "Dancing" }),
     );
     expect(users[1].skill).toEqual(
-      expect.objectContaining({ name: "JiuJitsu" })
+      expect.objectContaining({ name: "JiuJitsu" }),
     );
     expect(skills[0].user).toEqual(
-      expect.objectContaining({ name: "Kevin", age: 25 })
+      expect.objectContaining({ name: "Kevin", age: 25 }),
     );
     expect(skills[1].user).toEqual(
-      expect.objectContaining({ name: "Justin", age: 26 })
+      expect.objectContaining({ name: "Justin", age: 26 }),
     );
   });
 });
