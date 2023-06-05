@@ -1,4 +1,4 @@
-![publish workflow](https://github.com/bitovi/sequelize-create-with-associations/actions/workflows/publish.yml/badge.svg)
+![build workflow](https://github.com/bitovi/sequelize-create-with-associations/actions/workflows/build.yml/badge.svg)
 
 # Sequelize Create With Associations
 
