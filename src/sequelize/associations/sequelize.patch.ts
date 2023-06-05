@@ -1,5 +1,5 @@
 import * as inflection from "inflection";
-import {
+import type {
   Attributes,
   ModelStatic,
   Sequelize,
@@ -7,7 +7,7 @@ import {
   UpdateOptions,
 } from "sequelize";
 
-import { IAssociation, IAssociationBody } from "../types";
+import type { IAssociation, IAssociationBody } from "../types";
 
 export const handleUpdateBelongs = async (
   model: ModelStatic<any>,
@@ -19,7 +19,7 @@ export const handleUpdateBelongs = async (
   },
   origUpdate: any,
   currentModelAttributes: Attributes<any>,
-  belongsAssociation: Array<string>,
+  belongsAssociation: string[],
   associations: Record<string, IAssociation>,
   attributes: Attributes<any>,
   transaction: Transaction,
@@ -47,7 +47,7 @@ export const handleUpdateOne = async (
 ) => {
   const key = association.details.key;
 
-  await sequelize.model[association.details.model].update(
+  await sequelize.models[association.details.model].update(
     association.attributes,
     {
       where: {
@@ -65,13 +65,13 @@ export const handleUpdateMany = async (
   transaction: Transaction,
   primaryKey = "id"
 ) => {
-  const modelInstance = await sequelize.model[model.name].findByPk(
+  const modelInstance = await sequelize.models[model.name].findByPk(
     model[primaryKey]
   );
   if (!modelInstance) {
     return;
   }
-  const joinIds: Array<string> = association.attributes.map(
+  const joinIds: string[] = association.attributes.map(
     (data) => data[primaryKey]
   );
   if (joinIds.length === 0) return;

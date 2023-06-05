@@ -1,5 +1,10 @@
-import { Attributes, ModelStatic, Sequelize, Transaction } from "sequelize";
-import { IAssociation, JSONAnyObject } from "../types";
+import type {
+  Attributes,
+  ModelStatic,
+  Sequelize,
+  Transaction,
+} from "sequelize";
+import type { IAssociation, JSONAnyObject } from "../types";
 import { handleUpdateMany, handleUpdateOne } from "./sequelize.patch";
 import {
   handleBulkCreateHasOne,
@@ -12,8 +17,8 @@ export const getValidAttributesAndAssociations = (
   attributes: Attributes<any> | Array<Attributes<any>>,
   associations: Record<string, IAssociation> | undefined
 ) => {
-  const belongsAssociation: Array<string> = []; // the total no of associations that the current model Belongs to
-  const externalAssociations: Array<string> = []; // this associations do not belong in the current model.
+  const belongsAssociation: string[] = []; // the total no of associations that the current model Belongs to
+  const externalAssociations: string[] = []; // this associations do not belong in the current model.
   let currentModelAttributes = attributes;
   const otherAssociationAttributes: JSONAnyObject = {};
 
@@ -62,13 +67,13 @@ export const getValidAttributesAndAssociations = (
 export const handleCreateAssociations = async (
   sequelize: Sequelize,
   model: ModelStatic<any>,
-  validAssociations: Array<string>,
+  validAssociations: string[],
   associations: Record<string, IAssociation>,
   attributes: Attributes<any>,
   transaction: Transaction,
   modelId: string,
   primaryKey = "id"
-) => {
+): Promise<void> => {
   for (const association of validAssociations) {
     const associationDetails = associations[association];
     const associationAttribute = attributes[association];
@@ -120,13 +125,13 @@ export const handleCreateAssociations = async (
 export const handleBulkCreateAssociations = async (
   sequelize: Sequelize,
   model: ModelStatic<any>,
-  validAssociations: Array<string>,
+  validAssociations: string[],
   associations: Record<string, IAssociation>,
   attributes: JSONAnyObject,
   transaction: Transaction,
-  modelIds: Array<string>,
+  modelIds: string[],
   primaryKey = "id"
-) => {
+): Promise<void> => {
   for (const association of validAssociations) {
     const associationDetails = associations[association];
     const associationAttribute = attributes[association];
@@ -166,13 +171,13 @@ export const handleBulkCreateAssociations = async (
 export const handleUpdateAssociations = async (
   sequelize: Sequelize,
   model: ModelStatic<any>,
-  validAssociations: Array<string>,
+  validAssociations: string[],
   associations: Record<string, IAssociation>,
   attributes: Attributes<any>,
   transaction: Transaction,
   modelId: string,
   primaryKey = "id"
-) => {
+): Promise<void> => {
   for (const association of validAssociations) {
     const associationDetails = associations[association];
     const associationAttribute = attributes[association];

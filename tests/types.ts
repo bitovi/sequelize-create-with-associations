@@ -35,6 +35,7 @@ export interface SingleSkillUserModel
   name: string;
   age: number;
   skill?: Partial<SkillModel>;
+  Skill?: SkillModel;
 }
 
 export interface UserSkillModel
@@ -45,4 +46,6 @@ export interface UserSkillModel
   id: CreationOptional<number>;
   selfGranted: boolean;
   user?: UserModel;
+  SkillId?: number;
+  UserId?: number;
 }

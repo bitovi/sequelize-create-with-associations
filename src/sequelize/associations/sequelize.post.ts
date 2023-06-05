@@ -1,12 +1,17 @@
 import * as inflection from "inflection";
-import { Attributes, ModelStatic, Sequelize, Transaction } from "sequelize";
-import { IAssociation, IAssociationBody, JSONAnyObject } from "../types";
+import type {
+  Attributes,
+  ModelStatic,
+  Sequelize,
+  Transaction,
+} from "sequelize";
+import type { IAssociation, IAssociationBody, JSONAnyObject } from "../types";
 
 export const handleCreateBelongs = async (
   model: ModelStatic<any>,
   origCreate: any,
   currentModelAttributes: Attributes<any>,
-  belongsAssociation: Array<string>,
+  belongsAssociation: string[],
   associations: Record<string, IAssociation>,
   attributes: Attributes<any>,
   transaction: Transaction,
@@ -30,7 +35,7 @@ export const handleBulkCreateBelongs = async (
   model: ModelStatic<any>,
   origBulkCreate: any,
   currentModelAttributes: Array<Attributes<any>>,
-  belongsAssociation: Array<string>,
+  belongsAssociation: string[],
   associations: Record<string, IAssociation>,
   otherAttributes: Attributes<any>,
   transaction: Transaction,
@@ -61,7 +66,7 @@ export const handleCreateHasOne = async (
   model: { name: string; id: string },
   transaction: Transaction,
   primaryKey = "id"
-) => {
+): Promise<void> => {
   const modelInstance = await sequelize.models[model.name].findByPk(
     model[primaryKey],
     {
@@ -92,11 +97,11 @@ export const handleCreateHasOne = async (
 
 export const handleBulkCreateHasOne = async (
   sequelize: Sequelize,
-  association: IAssociationBody<Array<JSONAnyObject>>,
-  model: { name: string; id: Array<string> },
+  association: IAssociationBody<JSONAnyObject[]>,
+  model: { name: string; id: string[] },
   transaction: Transaction,
   primaryKey = "id"
-) => {
+): Promise<void> => {
   const modelInstances = await sequelize.models[model.name].findAll({
     where: {
       [primaryKey]: model.id,
@@ -130,11 +135,11 @@ export const handleBulkCreateHasOne = async (
 
 export const handleCreateMany = async (
   sequelize: Sequelize,
-  association: IAssociationBody<Array<JSONAnyObject>>,
+  association: IAssociationBody<JSONAnyObject[]>,
   model: { name: string; id: string },
   transaction: Transaction,
   primaryKey = "id"
-) => {
+): Promise<void> => {
   // Create an instance of the model using the id
   const modelInstance = await sequelize.models[model.name].findByPk(
     model[primaryKey],
@@ -146,7 +151,7 @@ export const handleCreateMany = async (
     throw new Error("Unable to find Created Model");
   }
   const isCreate = !association.attributes[0][primaryKey];
-  let joinIds: Array<string> = [];
+  let joinIds: string[] = [];
   if (isCreate) {
     // Create the models first and add their ids to the joinIds.
     const associationData = await sequelize.models[
@@ -165,11 +170,11 @@ export const handleCreateMany = async (
 
 export const handleBulkCreateMany = async (
   sequelize: Sequelize,
-  association: IAssociationBody<Array<JSONAnyObject[]>>,
-  model: { name: string; id: Array<string> },
+  association: IAssociationBody<JSONAnyObject[][]>,
+  model: { name: string; id: string[] },
   transaction: Transaction,
   primaryKey = "id"
-) => {
+): Promise<void> => {
   // Create an instance of the model using the id
   const modelInstances = await sequelize.models[model.name].findAll({
     where: {
@@ -183,7 +188,7 @@ export const handleBulkCreateMany = async (
   let i = 0;
   for (const modelInstance of modelInstances) {
     const isCreate = !association.attributes[i][0][primaryKey];
-    let joinIds: Array<string> = [];
+    let joinIds: string[] = [];
     if (isCreate) {
       // Create the models first and add their ids to the joinIds.
       const associationData = await sequelize.models[

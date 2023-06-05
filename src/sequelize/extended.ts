@@ -245,10 +245,7 @@ export const extendSequelize = async (SequelizeClass: any) => {
     const associations = getLookup(sequelize)[this.name];
     const modelPrimaryKey = this.primaryKeyAttribute;
 
-    if (!ops.where?.[modelPrimaryKey]) {
-      throw new Error("Primary key does not exist");
-    }
-    const modelId = ops.where[modelPrimaryKey];
+    const modelId = ops.where?.[modelPrimaryKey];
     let modelUpdateData: [affectedCount: number, affectedRows: M[]] | undefined;
     let currentModelAttributes = attributes;
 
@@ -267,6 +264,8 @@ export const extendSequelize = async (SequelizeClass: any) => {
     // If there are no associations, create the model with all attributes.
     if (validAssociationsInAttributes.length === 0) {
       return origUpdate.apply(this, [attributes, ops]);
+    } else if (!modelId) {
+      throw new Error("Primary key does not exist");
     }
 
     const transaction = await this.sequelize.transaction();
