@@ -1,5 +1,11 @@
-import { Model, CreateOptions, Attributes, UpdateOptions } from "sequelize";
-import { Col, Fn, Literal, MakeNullishOptional } from "sequelize/types/utils";
+import { Model } from "sequelize";
+import type { CreateOptions, Attributes, UpdateOptions } from "sequelize";
+import type {
+  Col,
+  Fn,
+  Literal,
+  MakeNullishOptional,
+} from "sequelize/types/utils";
 import {
   getValidAttributesAndAssociations,
   handleBulkCreateAssociations,
@@ -10,7 +16,7 @@ import {
   handleBulkCreateBelongs,
   handleCreateBelongs,
 } from "./associations/sequelize.post";
-import { IAssociation } from "./types";
+import type { IAssociation } from "./types";
 import { handleUpdateBelongs } from "./associations/sequelize.patch";
 
 type AssociationLookup = Record<string, Record<string, IAssociation>>;
