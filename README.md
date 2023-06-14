@@ -39,34 +39,19 @@ const { default: extendSequelize } = require("@hatchifyjs/sequelize-create-with-
   });
 
   // define your models
-  const User = sequelize.define(
-    "User",
-    {
-      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-      name: DataTypes.STRING,
-    },
-    { timestamps: false },
-  );
+  const User = sequelize.define("User", {
+    name: DataTypes.STRING,
+  });
 
-  const Skill = sequelize.define(
-    "Skill",
-    {
-      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-      name: DataTypes.STRING,
-    },
-    { timestamps: false },
-  );
+  const Skill = sequelize.define("Skill", {
+    name: DataTypes.STRING,
+  });
 
-  const UserSkill = sequelize.define(
-    "UserSkill",
-    {
-      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-      userId: DataTypes.INTEGER,
-      skillId: DataTypes.INTEGER,
-      selfGranted: DataTypes.BOOLEAN,
-    },
-    { timestamps: false },
-  );
+  const UserSkill = sequelize.define("UserSkill", {
+    userId: DataTypes.INTEGER,
+    skillId: DataTypes.INTEGER,
+    selfGranted: DataTypes.BOOLEAN,
+  });
 
   User.belongsToMany(Skill, {
     as: "skills",
