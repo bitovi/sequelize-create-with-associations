@@ -1,5 +1,9 @@
-import { Model } from "sequelize";
-import type { CreateOptions, Attributes, UpdateOptions } from "sequelize";
+import type {
+  Model,
+  CreateOptions,
+  Attributes,
+  UpdateOptions,
+} from "sequelize";
 import type {
   Col,
   Fn,
@@ -49,7 +53,7 @@ function calculateAssociationProp(associations) {
 function getLookup(sequelize): AssociationLookup {
   //TODO: Fix associations lookup being static
   /*  if (!associationsLookup) { */
-  let lookup: any = {};
+  const lookup: any = {};
   const models = sequelize.models;
   const modelKeys = Object.keys(models);
   modelKeys.forEach((key) => {
@@ -63,14 +67,14 @@ function getLookup(sequelize): AssociationLookup {
 export const extendSequelize = async (SequelizeClass: any) => {
   const origCreate = SequelizeClass.Model.create;
   const origUpdate = SequelizeClass.Model.update;
-  const origBulkCreate = Model.bulkCreate;
+  const origBulkCreate = SequelizeClass.Model.bulkCreate;
 
   SequelizeClass.Model.create = async function <
     M extends Model,
-    O extends CreateOptions<Attributes<M>> = CreateOptions<Attributes<M>>
+    O extends CreateOptions<Attributes<M>> = CreateOptions<Attributes<M>>,
   >(
     attributes: MakeNullishOptional<M["_creationAttributes"]> | undefined,
-    options?: O
+    options?: O,
   ) {
     const { sequelize } = this.options;
 
@@ -114,7 +118,7 @@ export const extendSequelize = async (SequelizeClass: any) => {
           associations as Record<string, IAssociation>,
           attributes,
           transaction,
-          modelPrimaryKey
+          modelPrimaryKey,
         );
         modelData = _model;
       }
@@ -135,7 +139,7 @@ export const extendSequelize = async (SequelizeClass: any) => {
           attributes,
           transaction,
           modelData?.[modelPrimaryKey],
-          modelPrimaryKey
+          modelPrimaryKey,
         );
       }
 
@@ -148,10 +152,13 @@ export const extendSequelize = async (SequelizeClass: any) => {
     return modelData;
   };
 
-  Model.bulkCreate = async function <
+  SequelizeClass.Model.bulkCreate = async function <
     M extends Model,
-    O extends CreateOptions<Attributes<M>> = CreateOptions<Attributes<M>>
-  >(attributes: MakeNullishOptional<M["_creationAttributes"]>[], options?: O) {
+    O extends CreateOptions<Attributes<M>> = CreateOptions<Attributes<M>>,
+  >(
+    attributes: Array<MakeNullishOptional<M["_creationAttributes"]>>,
+    options?: O,
+  ) {
     const { sequelize } = this.options;
 
     const associations = getLookup(sequelize)[this.name];
@@ -160,9 +167,9 @@ export const extendSequelize = async (SequelizeClass: any) => {
 
     let modelData:
       | undefined
-      | (O extends { returning: false } | { ignoreDuplicates: true }
-          ? void
-          : M)[];
+      | Array<
+          O extends { returning: false } | { ignoreDuplicates: true } ? void : M
+        >;
     let currentModelAttributes = attributes;
 
     const {
@@ -196,7 +203,7 @@ export const extendSequelize = async (SequelizeClass: any) => {
           associations as Record<string, IAssociation>,
           otherAssociationAttributes,
           transaction,
-          modelPrimaryKey
+          modelPrimaryKey,
         );
         modelData = _model;
       }
@@ -210,7 +217,7 @@ export const extendSequelize = async (SequelizeClass: any) => {
           ]);
         }
         const modelIds = modelData?.map((data) =>
-          data.getDataValue(modelPrimaryKey)
+          data.getDataValue(modelPrimaryKey),
         ) as string[];
         await handleBulkCreateAssociations(
           this.sequelize,
@@ -220,7 +227,7 @@ export const extendSequelize = async (SequelizeClass: any) => {
           otherAssociationAttributes,
           transaction,
           modelIds,
-          modelPrimaryKey
+          modelPrimaryKey,
         );
       }
       !options?.transaction && (await transaction.commit());
@@ -245,7 +252,7 @@ export const extendSequelize = async (SequelizeClass: any) => {
         UpdateOptions<Attributes<M>>["returning"],
         undefined | false
       >;
-    }
+    },
   ) {
     const { sequelize } = this.options;
     const associations = getLookup(sequelize)[this.name];
@@ -271,14 +278,14 @@ export const extendSequelize = async (SequelizeClass: any) => {
     if (validAssociationsInAttributes.length === 0) {
       return origUpdate.apply(this, [attributes, ops]);
     } else if (!modelId) {
-      throw new Error("Primary key does not exist");
+      throw new Error("Only updating by the primary key is supported");
     }
 
     const transaction = await this.sequelize.transaction();
 
     try {
       if (belongsAssociation.length > 0) {
-        const _model = await handleUpdateBelongs(
+        modelUpdateData = await handleUpdateBelongs(
           this,
           ops,
           origUpdate,
@@ -287,9 +294,8 @@ export const extendSequelize = async (SequelizeClass: any) => {
           associations as Record<string, IAssociation>,
           attributes,
           transaction,
-          modelPrimaryKey
+          modelPrimaryKey,
         );
-        modelUpdateData = _model;
       }
       if (externalAssociations.length > 0) {
         if (!modelUpdateData) {
@@ -309,7 +315,7 @@ export const extendSequelize = async (SequelizeClass: any) => {
           attributes,
           transaction,
           modelId,
-          modelPrimaryKey
+          modelPrimaryKey,
         );
       }
 

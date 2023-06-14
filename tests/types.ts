@@ -12,7 +12,11 @@ export interface SkillModel
   > {
   id?: CreationOptional<number>;
   name: string;
+  userId?: number;
   user?: Partial<UserModel>;
+  through?: { selfGranted: boolean };
+  UserSkill?: { selfGranted: boolean };
+  users?: Partial<UserModel[]>;
 }
 
 export interface UserModel
@@ -24,6 +28,8 @@ export interface UserModel
   name: string;
   age: number;
   skills?: Array<Partial<SkillModel>>;
+  UserSkill?: { selfGranted: boolean };
+  through?: { selfGranted: boolean };
 }
 
 export interface SingleSkillUserModel
@@ -35,7 +41,7 @@ export interface SingleSkillUserModel
   name: string;
   age: number;
   skill?: Partial<SkillModel>;
-  Skill?: SkillModel;
+  // Skill?: SkillModel;
 }
 
 export interface UserSkillModel
@@ -45,7 +51,9 @@ export interface UserSkillModel
   > {
   id: CreationOptional<number>;
   selfGranted: boolean;
-  user?: UserModel;
-  SkillId?: number;
-  UserId?: number;
+  userId: number;
+  skillId: number;
+  //user?: UserModel;
+  // SkillId?: number;
+  // UserId?: number;
 }

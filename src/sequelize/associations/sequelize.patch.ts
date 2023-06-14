@@ -1,4 +1,4 @@
-import * as inflection from "inflection";
+import { pluralize } from "inflection";
 import type {
   Attributes,
   ModelStatic,
@@ -23,7 +23,7 @@ export const handleUpdateBelongs = async (
   associations: Record<string, IAssociation>,
   attributes: Attributes<any>,
   transaction: Transaction,
-  primaryKey = "id"
+  primaryKey = "id",
 ) => {
   const updatedModelAttributes = currentModelAttributes;
   belongsAssociation.forEach((association) => {
@@ -43,18 +43,22 @@ export const handleUpdateOne = async (
   association: IAssociationBody<Array<Record<string, any>>>,
   model: { name: string; id: string },
   transaction: Transaction,
-  primaryKey = "id"
-) => {
-  const key = association.details.key;
-
-  await sequelize.models[association.details.model].update(
-    association.attributes,
+  primaryKey = "id",
+): Promise<void> => {
+  const modelInstance = await sequelize.models[model.name].findByPk(
+    model[primaryKey],
     {
-      where: {
-        [key]: model[primaryKey],
-      },
       transaction,
-    }
+    },
+  );
+
+  if (!modelInstance) {
+    throw new Error("Unable to find Created Model");
+  }
+
+  await modelInstance[`set${association.details.model}`](
+    association.attributes[primaryKey],
+    { transaction },
   );
 };
 
@@ -63,20 +67,20 @@ export const handleUpdateMany = async (
   association: IAssociationBody<Array<Record<string, any>>>,
   model: { name: string; id: string },
   transaction: Transaction,
-  primaryKey = "id"
-) => {
+  primaryKey = "id",
+): Promise<void> => {
   const modelInstance = await sequelize.models[model.name].findByPk(
-    model[primaryKey]
+    model[primaryKey],
   );
-  if (!modelInstance) {
-    return;
-  }
-  const joinIds: string[] = association.attributes.map(
-    (data) => data[primaryKey]
+
+  if (!modelInstance || !association.attributes.length) return;
+
+  const modelNameInPlural = pluralize(association.details.model);
+
+  await modelInstance[`set${modelNameInPlural}`](
+    association.attributes.map((data) => data[primaryKey]),
+    {
+      transaction,
+    },
   );
-  if (joinIds.length === 0) return;
-  const modelNameInPlural = inflection.pluralize(association.details.model);
-  return await modelInstance[`set${modelNameInPlural}`](joinIds, {
-    transaction,
-  });
 };
