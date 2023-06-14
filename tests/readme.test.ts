@@ -63,34 +63,19 @@ describe("Readme", () => {
 
   it("Should make sure readme example works", async () => {
     // define your models
-    const User = sequelize.define<UserModel>(
-      "User",
-      {
-        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-        name: DataTypes.STRING,
-      },
-      { timestamps: false },
-    );
+    const User = sequelize.define<UserModel>("User", {
+      name: DataTypes.STRING,
+    });
 
-    const Skill = sequelize.define<SkillModel>(
-      "Skill",
-      {
-        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-        name: DataTypes.STRING,
-      },
-      { timestamps: false },
-    );
+    const Skill = sequelize.define<SkillModel>("Skill", {
+      name: DataTypes.STRING,
+    });
 
-    const UserSkill = sequelize.define<UserSkillModel>(
-      "UserSkill",
-      {
-        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-        userId: DataTypes.INTEGER,
-        skillId: DataTypes.INTEGER,
-        selfGranted: DataTypes.BOOLEAN,
-      },
-      { timestamps: false },
-    );
+    const UserSkill = sequelize.define<UserSkillModel>("UserSkill", {
+      userId: DataTypes.INTEGER,
+      skillId: DataTypes.INTEGER,
+      selfGranted: DataTypes.BOOLEAN,
+    });
 
     User.belongsToMany(Skill, {
       as: "skills",
@@ -150,9 +135,19 @@ describe("Readme", () => {
           {
             id: 1,
             name: "Cooking",
-            UserSkill: { id: 1, userId: 1, skillId: 1, selfGranted: null },
+            UserSkill: {
+              userId: 1,
+              skillId: 1,
+              selfGranted: null,
+              createdAt: expect.any(Date),
+              updatedAt: expect.any(Date),
+            },
+            createdAt: expect.any(Date),
+            updatedAt: expect.any(Date),
           },
         ],
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
       },
       {
         id: 2,
@@ -161,9 +156,19 @@ describe("Readme", () => {
           {
             id: 1,
             name: "Cooking",
-            UserSkill: { id: 3, userId: 2, skillId: 1, selfGranted: null },
+            UserSkill: {
+              userId: 2,
+              skillId: 1,
+              selfGranted: null,
+              createdAt: expect.any(Date),
+              updatedAt: expect.any(Date),
+            },
+            createdAt: expect.any(Date),
+            updatedAt: expect.any(Date),
           },
         ],
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
       },
       {
         id: 3,
@@ -172,9 +177,19 @@ describe("Readme", () => {
           {
             id: 3,
             name: "Gaming",
-            UserSkill: { id: 4, userId: 3, skillId: 3, selfGranted: true },
+            UserSkill: {
+              userId: 3,
+              skillId: 3,
+              selfGranted: true,
+              createdAt: expect.any(Date),
+              updatedAt: expect.any(Date),
+            },
+            createdAt: expect.any(Date),
+            updatedAt: expect.any(Date),
           },
         ],
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
       },
     ]);
   });
