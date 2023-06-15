@@ -16,12 +16,7 @@ import {
   handleCreateAssociations,
   handleUpdateAssociations,
 } from "./associations";
-import {
-  handleBulkCreateBelongs,
-  handleCreateBelongs,
-} from "./associations/sequelize.post";
 import type { IAssociation } from "./types";
-import { handleUpdateBelongs } from "./associations/sequelize.patch";
 
 type AssociationLookup = Record<string, Record<string, IAssociation>>;
 
@@ -50,7 +45,7 @@ function calculateAssociationProp(associations) {
 
   return result;
 }
-function getLookup(sequelize): AssociationLookup {
+export function getLookup(sequelize): AssociationLookup {
   //TODO: Fix associations lookup being static
   /*  if (!associationsLookup) { */
   const lookup: any = {};
@@ -87,11 +82,11 @@ export const extendSequelize = async (SequelizeClass: any) => {
           ? void
           : M);
 
-    const { externalAssociations, belongsAssociation, currentModelAttributes } =
+    const { externalAssociations, currentModelAttributes } =
       getValidAttributesAndAssociations(attributes, associations);
 
     // If there are no associations, create the model with all attributes.
-    if (!externalAssociations.length && !belongsAssociation.length) {
+    if (!externalAssociations.length) {
       return origCreate.apply(this, [attributes, options]);
     }
 
@@ -99,39 +94,24 @@ export const extendSequelize = async (SequelizeClass: any) => {
       options?.transaction ?? (await this.sequelize.transaction());
 
     try {
-      if (belongsAssociation.length) {
-        const _model = await handleCreateBelongs(
-          this,
-          origCreate,
+      // create the model first if it does not exist
+      if (!modelData) {
+        modelData = await origCreate.apply(this, [
           currentModelAttributes,
-          belongsAssociation,
-          associations as Record<string, IAssociation>,
-          attributes,
-          transaction,
-          modelPrimaryKey,
-        );
-        modelData = _model;
+          { transaction },
+        ]);
       }
 
-      if (externalAssociations.length) {
-        // create the model first if it does not exist
-        if (!modelData) {
-          modelData = await origCreate.apply(this, [
-            currentModelAttributes,
-            { transaction },
-          ]);
-        }
-        await handleCreateAssociations(
-          this.sequelize,
-          this,
-          externalAssociations,
-          associations as Record<string, IAssociation>,
-          attributes,
-          transaction,
-          modelData?.[modelPrimaryKey],
-          modelPrimaryKey,
-        );
-      }
+      await handleCreateAssociations(
+        this.sequelize,
+        this,
+        externalAssociations,
+        associations as Record<string, IAssociation>,
+        attributes,
+        transaction,
+        modelData?.[modelPrimaryKey],
+        modelPrimaryKey,
+      );
 
       !options?.transaction && (await transaction.commit());
     } catch (error) {
@@ -164,12 +144,11 @@ export const extendSequelize = async (SequelizeClass: any) => {
     const {
       otherAssociationAttributes,
       externalAssociations,
-      belongsAssociation,
       currentModelAttributes,
     } = getValidAttributesAndAssociations(attributes, associations);
 
     // If there are no associations, create the model with all attributes.
-    if (!externalAssociations.length && !belongsAssociation.length) {
+    if (!externalAssociations.length) {
       return origBulkCreate.apply(this, [attributes, options]);
     }
 
@@ -177,42 +156,29 @@ export const extendSequelize = async (SequelizeClass: any) => {
       options?.transaction ?? (await this.sequelize.transaction());
 
     try {
-      if (belongsAssociation.length) {
-        const _model = await handleBulkCreateBelongs(
-          this,
-          origBulkCreate,
+      // create the model first if it does not exist
+      if (!modelData) {
+        modelData = await origBulkCreate.apply(this, [
           currentModelAttributes,
-          belongsAssociation,
-          associations as Record<string, IAssociation>,
-          otherAssociationAttributes,
-          transaction,
-          modelPrimaryKey,
-        );
-        modelData = _model;
+          { transaction },
+        ]);
       }
 
-      if (externalAssociations.length) {
-        // create the model first if it does not exist
-        if (!modelData) {
-          modelData = await origBulkCreate.apply(this, [
-            currentModelAttributes,
-            { transaction },
-          ]);
-        }
-        const modelIds = modelData?.map((data) =>
-          data.getDataValue(modelPrimaryKey),
-        ) as string[];
-        await handleBulkCreateAssociations(
-          this.sequelize,
-          this,
-          externalAssociations,
-          associations as Record<string, IAssociation>,
-          otherAssociationAttributes,
-          transaction,
-          modelIds,
-          modelPrimaryKey,
-        );
-      }
+      const modelIds = modelData?.map((data) =>
+        data.getDataValue(modelPrimaryKey),
+      ) as string[];
+
+      await handleBulkCreateAssociations(
+        this.sequelize,
+        this,
+        externalAssociations,
+        associations as Record<string, IAssociation>,
+        otherAssociationAttributes,
+        transaction,
+        modelIds,
+        modelPrimaryKey,
+      );
+
       !options?.transaction && (await transaction.commit());
     } catch (error) {
       !options?.transaction && (await transaction.rollback());
@@ -244,11 +210,11 @@ export const extendSequelize = async (SequelizeClass: any) => {
     const modelId = ops.where?.[modelPrimaryKey];
     let modelUpdateData: [affectedCount: number, affectedRows: M[]] | undefined;
 
-    const { externalAssociations, belongsAssociation, currentModelAttributes } =
+    const { externalAssociations, currentModelAttributes } =
       getValidAttributesAndAssociations(attributes, associations);
 
     // If there are no associations, create the model with all attributes.
-    if (!externalAssociations.length && !belongsAssociation.length) {
+    if (!externalAssociations.length) {
       return origUpdate.apply(this, [attributes, ops]);
     } else if (!modelId) {
       throw new Error("Only updating by the primary key is supported");
@@ -257,40 +223,26 @@ export const extendSequelize = async (SequelizeClass: any) => {
     const transaction = await this.sequelize.transaction();
 
     try {
-      if (belongsAssociation.length) {
-        modelUpdateData = await handleUpdateBelongs(
-          this,
-          ops,
-          origUpdate,
+      if (!modelUpdateData) {
+        modelUpdateData = await origUpdate.apply(this, [
           currentModelAttributes,
-          belongsAssociation,
-          associations as Record<string, IAssociation>,
-          attributes,
-          transaction,
-          modelPrimaryKey,
-        );
+          {
+            ...ops,
+            transaction,
+          },
+        ]);
       }
-      if (externalAssociations.length) {
-        if (!modelUpdateData) {
-          modelUpdateData = await origUpdate.apply(this, [
-            currentModelAttributes,
-            {
-              ...ops,
-              transaction,
-            },
-          ]);
-        }
-        await handleUpdateAssociations(
-          this.sequelize,
-          this,
-          externalAssociations,
-          associations as Record<string, IAssociation>,
-          attributes,
-          transaction,
-          modelId,
-          modelPrimaryKey,
-        );
-      }
+
+      await handleUpdateAssociations(
+        this.sequelize,
+        this,
+        externalAssociations,
+        associations as Record<string, IAssociation>,
+        attributes,
+        transaction,
+        modelId,
+        modelPrimaryKey,
+      );
 
       !ops?.transaction && (await transaction.commit());
     } catch (error) {

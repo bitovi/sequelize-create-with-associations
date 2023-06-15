@@ -17,8 +17,7 @@ export const getValidAttributesAndAssociations = (
   attributes: Attributes<any> | Array<Attributes<any>>,
   associations: Record<string, IAssociation> | undefined,
 ) => {
-  const belongsAssociation: string[] = []; // the total no of associations that the current model Belongs to
-  const externalAssociations: string[] = []; // this associations do not belong in the current model.
+  const externalAssociations: string[] = [];
   let currentModelAttributes = attributes;
   const otherAssociationAttributes: JSONAnyObject = {};
 
@@ -45,19 +44,13 @@ export const getValidAttributesAndAssociations = (
           data = attributesLeft;
         }
         currentModelAttributes = data;
-        const associationDetails = associations[association];
-        if (associationDetails.type === "belongsTo") {
-          belongsAssociation.push(association);
-        } else {
-          externalAssociations.push(association);
-        }
+        externalAssociations.push(association);
       }
     });
   }
 
   return {
     otherAssociationAttributes,
-    belongsAssociation,
     externalAssociations,
     currentModelAttributes,
   };
