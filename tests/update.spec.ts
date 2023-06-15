@@ -560,4 +560,55 @@ describe("Update", () => {
 
     expect(await Skill.count()).toEqual(1);
   });
+
+  it("Should throw a proper error when trying to update without an ID", async () => {
+    const User = sequelize.define<SingleSkillUserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasOne(Skill, {
+      as: "skill",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    const justin = await User.create({
+      name: "Justin",
+      age: 33,
+      skill: { name: "Programming" },
+    });
+
+    const cooking = await Skill.create({ id: 10, name: "Cooking" });
+
+    await expect(
+      User.update(
+        { age: 32, skill: { id: cooking.id } },
+        { where: { name: justin.name } },
+      ),
+    ).rejects.toEqual(
+      new Error("Only updating by the primary key is supported"),
+    );
+  });
 });
