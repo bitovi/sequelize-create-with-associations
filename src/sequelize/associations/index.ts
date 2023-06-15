@@ -15,7 +15,7 @@ import {
 
 export const getValidAttributesAndAssociations = (
   attributes: Attributes<any> | Array<Attributes<any>>,
-  associations: Record<string, IAssociation> | undefined
+  associations: Record<string, IAssociation> | undefined,
 ) => {
   const belongsAssociation: string[] = []; // the total no of associations that the current model Belongs to
   const externalAssociations: string[] = []; // this associations do not belong in the current model.
@@ -40,7 +40,6 @@ export const getValidAttributesAndAssociations = (
             return attributesleft;
           });
         } else {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { [association]: _, ...attributesLeft } =
             currentModelAttributes;
           data = attributesLeft;
@@ -72,13 +71,14 @@ export const handleCreateAssociations = async (
   attributes: Attributes<any>,
   transaction: Transaction,
   modelId: string,
-  primaryKey = "id"
+  primaryKey = "id",
 ): Promise<void> => {
   for (const association of validAssociations) {
     const associationDetails = associations[association];
     const associationAttribute = attributes[association];
 
     switch (associationDetails.type) {
+      case "BelongsTo":
       case "HasOne":
         await handleCreateHasOne(
           sequelize,
@@ -88,23 +88,11 @@ export const handleCreateAssociations = async (
           },
           { name: model.name, id: modelId },
           transaction,
-          primaryKey
-        );
-        break;
-      case "HasMany":
-        //TODO: fix this and similar ones
-        await handleCreateMany(
-          sequelize,
-          {
-            details: associationDetails,
-            attributes: associationAttribute,
-          },
-          { name: model.name, id: modelId },
-          transaction,
-          primaryKey
+          primaryKey,
         );
         break;
       case "BelongsToMany":
+      case "HasMany":
         await handleCreateMany(
           sequelize,
           {
@@ -113,7 +101,7 @@ export const handleCreateAssociations = async (
           },
           { name: model.name, id: modelId },
           transaction,
-          primaryKey
+          primaryKey,
         );
         break;
       default:
@@ -130,13 +118,14 @@ export const handleBulkCreateAssociations = async (
   attributes: JSONAnyObject,
   transaction: Transaction,
   modelIds: string[],
-  primaryKey = "id"
+  primaryKey = "id",
 ): Promise<void> => {
   for (const association of validAssociations) {
     const associationDetails = associations[association];
     const associationAttribute = attributes[association];
 
     switch (associationDetails.type) {
+      case "BelongsTo":
       case "HasOne":
         await handleBulkCreateHasOne(
           sequelize,
@@ -146,11 +135,11 @@ export const handleBulkCreateAssociations = async (
           },
           { name: model.name, id: modelIds },
           transaction,
-          primaryKey
+          primaryKey,
         );
         break;
-      case "HasMany":
       case "BelongsToMany":
+      case "HasMany":
         await handleBulkCreateMany(
           sequelize,
           {
@@ -159,7 +148,7 @@ export const handleBulkCreateAssociations = async (
           },
           { name: model.name, id: modelIds },
           transaction,
-          primaryKey
+          primaryKey,
         );
         break;
       default:
@@ -176,13 +165,14 @@ export const handleUpdateAssociations = async (
   attributes: Attributes<any>,
   transaction: Transaction,
   modelId: string,
-  primaryKey = "id"
+  primaryKey = "id",
 ): Promise<void> => {
   for (const association of validAssociations) {
     const associationDetails = associations[association];
     const associationAttribute = attributes[association];
 
     switch (associationDetails.type) {
+      case "BelongsTo":
       case "HasOne":
         await handleUpdateOne(
           sequelize,
@@ -195,7 +185,7 @@ export const handleUpdateAssociations = async (
             id: modelId,
           },
           transaction,
-          primaryKey
+          primaryKey,
         );
         break;
       case "HasMany":
@@ -211,7 +201,7 @@ export const handleUpdateAssociations = async (
             id: modelId,
           },
           transaction,
-          primaryKey
+          primaryKey,
         );
         break;
       default:

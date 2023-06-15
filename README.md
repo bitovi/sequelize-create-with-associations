@@ -18,7 +18,7 @@ Or, you can hire us for training, consulting, or development. [Set up a free con
 To install from npm:
 
 ```
-npm i @hatchifyjs/sequelize-create-with-associations
+npm i sequelize sqlite3 @hatchifyjs/sequelize-create-with-associations
 ```
 
 ## Basic Use
@@ -26,59 +26,76 @@ npm i @hatchifyjs/sequelize-create-with-associations
 After installing @hatchifyjs/sequelize-create-with-associations, import the Sequelize class and extend it with `extendSequelize`
 
 ```js
-const { Sequelize } = require("sequelize");
-const extendSequelize = require("@hatchifyjs/sequelize-create-with-associations");
+const { Sequelize, DataTypes } = require("sequelize");
+const { default: extendSequelize } = require("@hatchifyjs/sequelize-create-with-associations");
 
-//extend sequelize
-extendSequelize(Sequelize);
+(async function main() {
+  // extend Sequelize
+  await extendSequelize(Sequelize);
 
-//create your sequelize instance
-const sequelize = new Sequelize("sqlite::memory:", {
-  logging: false,
-});
+  // create your Sequelize instance
+  const sequelize = new Sequelize("sqlite::memory:", {
+    logging: false,
+  });
 
-// define your models
-const User = sequelize.define("User", {
-  name: DataTypes.STRING,
-});
+  // define your models
+  const User = sequelize.define("User", {
+    name: DataTypes.STRING,
+  });
 
-const Skill = sequelize.define("Skill", {
-  name: DataTypes.STRING,
-});
+  const Skill = sequelize.define("Skill", {
+    name: DataTypes.STRING,
+  });
 
-User.hasMany(Skill, {
-  as: "skills",
-});
-Skill.belongsTo(User);
+  const UserSkill = sequelize.define("UserSkill", {
+    userId: DataTypes.INTEGER,
+    skillId: DataTypes.INTEGER,
+    selfGranted: DataTypes.BOOLEAN,
+  });
 
-//synchronize your models
-await sequelize.sync();
+  User.belongsToMany(Skill, {
+    as: "skills",
+    foreignKey: "userId",
+    through: UserSkill,
+  });
 
-// create a record and associated data
-await User.create({
-  name: "Roy",
-  skills: [
+  Skill.belongsToMany(User, {
+    as: "users",
+    foreignKey: "skillId",
+    through: UserSkill,
+  });
+
+  // create the tables
+  await sequelize.sync();
+
+  // seed some data
+  const cooking = await Skill.create({ name: "Cooking" });
+
+  // create a record and associate existing data or create data on the fly
+  const justin = await User.create({
+    name: "Justin",
+    skills: [{ name: "Programming" }, { id: cooking.id }],
+  });
+
+  await User.update(
     {
-      name: "Product Design",
+      name: "Kevin",
+      skills: [{ id: cooking.id }],
     },
-  ],
-});
+    { where: { id: justin.id } },
+  );
 
-// or associate existing data
-await Skill.create({
-  id: 2,
-  name: "Testing",
-});
-await User.create({
-  name: "Nau",
-  skills: [
+  await User.bulkCreate([
     {
-      id: 2,
+      name: "John",
+      skills: [{ id: cooking.id }],
     },
-  ],
-});
-
-// It should work on the fly.
+    {
+      name: "Jane",
+      skills: [{ name: "Gaming", through: { selfGranted: true } }],
+    },
+  ]);
+})();
 ```
 
 ## How it works

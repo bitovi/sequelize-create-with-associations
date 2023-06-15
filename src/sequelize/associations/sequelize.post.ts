@@ -1,4 +1,3 @@
-import * as inflection from "inflection";
 import type {
   Attributes,
   ModelStatic,
@@ -15,7 +14,7 @@ export const handleCreateBelongs = async (
   associations: Record<string, IAssociation>,
   attributes: Attributes<any>,
   transaction: Transaction,
-  primaryKey = "id"
+  primaryKey = "id",
 ) => {
   const updatedModelAttributes = currentModelAttributes;
   belongsAssociation.forEach((association) => {
@@ -39,9 +38,9 @@ export const handleBulkCreateBelongs = async (
   associations: Record<string, IAssociation>,
   otherAttributes: Attributes<any>,
   transaction: Transaction,
-  primaryKey = "id"
+  primaryKey = "id",
 ) => {
-  const bulkModelAttributes: Array<any> = [];
+  const bulkModelAttributes: any[] = [];
   let i = 0;
   currentModelAttributes.forEach((currentModelAttribute) => {
     const updatedModelAttributes = currentModelAttribute;
@@ -65,13 +64,13 @@ export const handleCreateHasOne = async (
   association: IAssociationBody<JSONAnyObject>,
   model: { name: string; id: string },
   transaction: Transaction,
-  primaryKey = "id"
+  primaryKey = "id",
 ): Promise<void> => {
   const modelInstance = await sequelize.models[model.name].findByPk(
     model[primaryKey],
     {
       transaction,
-    }
+    },
   );
   if (!modelInstance) {
     throw new Error("Unable to find Created Model");
@@ -83,7 +82,7 @@ export const handleCreateHasOne = async (
       association.attributes,
       {
         transaction,
-      }
+      },
     );
     joinId = model[primaryKey];
   } else {
@@ -100,7 +99,7 @@ export const handleBulkCreateHasOne = async (
   association: IAssociationBody<JSONAnyObject[]>,
   model: { name: string; id: string[] },
   transaction: Transaction,
-  primaryKey = "id"
+  primaryKey = "id",
 ): Promise<void> => {
   const modelInstances = await sequelize.models[model.name].findAll({
     where: {
@@ -108,29 +107,36 @@ export const handleBulkCreateHasOne = async (
     },
     transaction,
   });
+
   if (modelInstances.length !== model.id.length) {
     throw new Error("Not all models were successfully created");
   }
-  let joinIds: Array<string | undefined> = [];
-  const isCreate = !association.attributes[0][primaryKey];
-  if (isCreate) {
-    const associationData = await sequelize.models[
-      association.details.model
-    ].bulkCreate(association.attributes, {
-      transaction,
-    });
-    joinIds = associationData.map((data) => data.getDataValue(primaryKey));
-  } else {
-    joinIds = association.attributes.map((data) => data[primaryKey]);
-  }
+
   const modelName = association.details.model;
-  let i = 0;
-  for (const modelInstance of modelInstances) {
-    await modelInstance[`set${modelName}`](joinIds[i], {
-      transaction,
-    });
-    i++;
-  }
+
+  await Promise.all(
+    association.attributes.map(async (attribute, index) => {
+      const isCreate = !attribute[primaryKey];
+
+      if (isCreate) {
+        const id = (
+          await sequelize.models[association.details.model].create(attribute, {
+            transaction,
+          })
+        )
+          .getDataValue(primaryKey)
+          .toString();
+
+        return modelInstances[index][`set${modelName}`](id, {
+          transaction,
+        });
+      }
+
+      return modelInstances[index][`set${modelName}`](attribute[primaryKey], {
+        transaction,
+      });
+    }),
+  );
 };
 
 export const handleCreateMany = async (
@@ -138,34 +144,48 @@ export const handleCreateMany = async (
   association: IAssociationBody<JSONAnyObject[]>,
   model: { name: string; id: string },
   transaction: Transaction,
-  primaryKey = "id"
+  primaryKey = "id",
 ): Promise<void> => {
   // Create an instance of the model using the id
   const modelInstance = await sequelize.models[model.name].findByPk(
     model[primaryKey],
     {
       transaction,
-    }
+    },
   );
+
   if (!modelInstance) {
     throw new Error("Unable to find Created Model");
   }
-  const isCreate = !association.attributes[0][primaryKey];
-  let joinIds: string[] = [];
-  if (isCreate) {
-    // Create the models first and add their ids to the joinIds.
-    const associationData = await sequelize.models[
-      association.details.model
-    ].bulkCreate(association.attributes, { transaction });
-    joinIds = associationData.map((data) => data.getDataValue(primaryKey));
-  } else {
-    // Assign the ids to the through table if the model is present
-    joinIds = association.attributes.map((data) => data[primaryKey]);
-  }
-  const modelNameInPlural = inflection.pluralize(association.details.model);
-  await modelInstance[`add${modelNameInPlural}`](joinIds, {
-    transaction,
-  });
+
+  const modelName = association.details.model;
+
+  await Promise.all(
+    association.attributes.map(async (attribute) => {
+      const isCreate = !attribute[primaryKey];
+
+      if (isCreate) {
+        const id = (
+          await sequelize.models[association.details.model].create(
+            { ...attribute, through: undefined },
+            { transaction },
+          )
+        )
+          .getDataValue(primaryKey)
+          .toString();
+
+        return modelInstance[`add${modelName}`](id, {
+          through: attribute.through,
+          transaction,
+        });
+      }
+
+      return modelInstance[`add${modelName}`](attribute[primaryKey], {
+        through: attribute.through,
+        transaction,
+      });
+    }),
+  );
 };
 
 export const handleBulkCreateMany = async (
@@ -173,7 +193,7 @@ export const handleBulkCreateMany = async (
   association: IAssociationBody<JSONAnyObject[][]>,
   model: { name: string; id: string[] },
   transaction: Transaction,
-  primaryKey = "id"
+  primaryKey = "id",
 ): Promise<void> => {
   // Create an instance of the model using the id
   const modelInstances = await sequelize.models[model.name].findAll({
@@ -182,27 +202,45 @@ export const handleBulkCreateMany = async (
     },
     transaction,
   });
+
   if (modelInstances.length !== model.id.length) {
     throw new Error("Not all models were successfully created");
   }
-  let i = 0;
-  for (const modelInstance of modelInstances) {
-    const isCreate = !association.attributes[i][0][primaryKey];
-    let joinIds: string[] = [];
-    if (isCreate) {
-      // Create the models first and add their ids to the joinIds.
-      const associationData = await sequelize.models[
-        association.details.model
-      ].bulkCreate(association.attributes[i], { transaction });
-      joinIds = associationData.map((data) => data.getDataValue(primaryKey));
-    } else {
-      // Assign the ids to the through table if the model is present
-      joinIds = association.attributes[i].map((data) => data[primaryKey]);
-    }
-    i++;
-    const modelNameInPlural = inflection.pluralize(association.details.model);
-    await modelInstance[`add${modelNameInPlural}`](joinIds, {
-      transaction,
-    });
-  }
+
+  const modelName = association.details.model;
+
+  await Promise.all(
+    association.attributes.map(async (attributes, index) => {
+      return Promise.all(
+        attributes.map(async (attribute) => {
+          const isCreate = !attribute[primaryKey];
+
+          if (isCreate) {
+            // Create the models first and add their ids to the joinIds.
+            const id = (
+              await sequelize.models[association.details.model].create(
+                { ...attribute, through: undefined },
+                { transaction },
+              )
+            )
+              .getDataValue(primaryKey)
+              .toString();
+
+            return modelInstances[index][`add${modelName}`](id, {
+              through: attribute.through,
+              transaction,
+            });
+          }
+
+          return modelInstances[index][`add${modelName}`](
+            attribute[primaryKey],
+            {
+              through: attribute.through,
+              transaction,
+            },
+          );
+        }),
+      );
+    }),
+  );
 };

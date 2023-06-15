@@ -8,7 +8,10 @@
   "root": true,
   "extends": ["@bitovi/eslint-config/node", "prettier"],
   "plugins": ["prettier"],
+  "ignorePatterns": ["dist/**"],
   "rules": {
+    "@typescript-eslint/explicit-module-boundary-types": "warn",
+    "no-prototype-builtins": "warn",
     "prettier/prettier": [
       "error",
       {
