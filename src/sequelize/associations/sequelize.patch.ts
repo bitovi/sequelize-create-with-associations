@@ -1,42 +1,7 @@
 import { pluralize } from "inflection";
-import type {
-  Attributes,
-  ModelStatic,
-  Sequelize,
-  Transaction,
-  UpdateOptions,
-} from "sequelize";
+import type { Sequelize, Transaction } from "sequelize";
 
-import type { IAssociation, IAssociationBody } from "../types";
-
-export const handleUpdateBelongs = async (
-  model: ModelStatic<any>,
-  ops: Omit<UpdateOptions<Attributes<any>>, "returning"> & {
-    returning: Exclude<
-      UpdateOptions<Attributes<any>>["returning"],
-      undefined | false
-    >;
-  },
-  origUpdate: any,
-  currentModelAttributes: Attributes<any>,
-  belongsAssociation: string[],
-  associations: Record<string, IAssociation>,
-  attributes: Attributes<any>,
-  transaction: Transaction,
-  primaryKey = "id",
-) => {
-  const updatedModelAttributes = currentModelAttributes;
-  belongsAssociation.forEach((association) => {
-    const associationDetails = associations[association];
-    const associationAttribute = attributes[association];
-    const key = associationDetails.key;
-    updatedModelAttributes[key] = associationAttribute?.[primaryKey];
-  });
-  return origUpdate.apply(model, [
-    updatedModelAttributes,
-    { ...ops, transaction },
-  ]);
-};
+import type { IAssociationBody } from "../types";
 
 export const handleUpdateOne = async (
   sequelize: Sequelize,

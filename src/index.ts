@@ -1,3 +1,1 @@
-import { extendSequelize } from "./sequelize/extended";
-
-export default extendSequelize;
+export { extendSequelize } from "./sequelize/extended";

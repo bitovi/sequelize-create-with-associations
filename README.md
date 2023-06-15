@@ -27,7 +27,7 @@ After installing @hatchifyjs/sequelize-create-with-associations, import the Sequ
 
 ```js
 const { Sequelize, DataTypes } = require("sequelize");
-const { default: extendSequelize } = require("@hatchifyjs/sequelize-create-with-associations");
+const { extendSequelize } = require("@hatchifyjs/sequelize-create-with-associations");
 
 (async function main() {
   // extend Sequelize
