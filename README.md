@@ -72,7 +72,7 @@ const { extendSequelize } = require("@hatchifyjs/sequelize-create-with-associati
 await extendSequelize(Sequelize);
 ```
 
-Then use it when you want to create with associations elegantly
+Then use it when you want to create with associations elegantly:
 
 ```js
 await User.create({
@@ -81,7 +81,7 @@ await User.create({
 });
 ```
 
-Or update with associations
+Or update with associations:
 
 ```js
 await User.update(
@@ -93,7 +93,7 @@ await User.update(
 );
 ```
 
-And even when creating in bulk
+And even when creating in bulk:
 
 ```js
 await User.bulkCreate([
