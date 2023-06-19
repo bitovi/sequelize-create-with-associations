@@ -9,9 +9,23 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "Sequelize",
+    "associations",
+    "relationships",
+    "create",
+    "update"
+  ],
+  "author": "Bitovi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitovi/sequelize-create-with-associations.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bitovi/sequelize-create-with-associations/issues"
+  },
+  "homepage": "https://github.com/bitovi/sequelize-create-with-associations#readme",
   "dependencies": {
     "inflection": "^2.0.1"
   },
