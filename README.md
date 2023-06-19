@@ -180,7 +180,7 @@ const { extendSequelize } = require("@hatchifyjs/sequelize-create-with-associati
       skills: [{ name: "Gaming", through: { selfGranted: true } }],
     },
   ]);
-})();
+})().catch((err) => console.error(err));
 ```
 
 ## How it works
