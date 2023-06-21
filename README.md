@@ -18,12 +18,97 @@ Or, you can hire us for training, consulting, or development. [Set up a free con
 To install from npm:
 
 ```
-npm i sequelize sqlite3 @hatchifyjs/sequelize-create-with-associations
+npm install sequelize sqlite3 @hatchifyjs/sequelize-create-with-associations
 ```
 
 ## Basic Use
 
-After installing @hatchifyjs/sequelize-create-with-associations, import the Sequelize class and extend it with `extendSequelize`
+Create your models like you normally do
+
+```js
+const { Sequelize, DataTypes } = require("sequelize");
+
+// create your Sequelize instance
+const sequelize = new Sequelize("sqlite::memory:", {
+  logging: false,
+});
+
+// define your models
+const User = sequelize.define("User", {
+  name: DataTypes.STRING,
+});
+
+const Skill = sequelize.define("Skill", {
+  name: DataTypes.STRING,
+});
+
+const UserSkill = sequelize.define("UserSkill", {
+  userId: DataTypes.INTEGER,
+  skillId: DataTypes.INTEGER,
+  selfGranted: DataTypes.BOOLEAN,
+});
+
+User.belongsToMany(Skill, {
+  as: "skills",
+  foreignKey: "userId",
+  through: UserSkill,
+});
+
+Skill.belongsToMany(User, {
+  as: "users",
+  foreignKey: "skillId",
+  through: UserSkill,
+});
+
+// create the tables
+await sequelize.sync();
+```
+
+Make sure to activate the new features early in the process, like when you initialize Sequelize:
+
+```js
+const { extendSequelize } = require("@hatchifyjs/sequelize-create-with-associations");
+
+await extendSequelize(Sequelize);
+```
+
+Then use it when you want to create with associations elegantly:
+
+```js
+await User.create({
+  name: "Justin",
+  skills: [{ name: "Programming" }],
+});
+```
+
+Or update with associations:
+
+```js
+await User.update(
+  {
+    name: "Kevin",
+    skills: [{ id: 7 }],
+  },
+  { where: { id: 1 } },
+);
+```
+
+And even when creating in bulk:
+
+```js
+await User.bulkCreate([
+  {
+    name: "John",
+    skills: [{ id: 7 }],
+  },
+  {
+    name: "Jane",
+    skills: [{ name: "Gaming", through: { selfGranted: true } }],
+  },
+]);
+```
+
+Full example:
 
 ```js
 const { Sequelize, DataTypes } = require("sequelize");
@@ -95,7 +180,7 @@ const { extendSequelize } = require("@hatchifyjs/sequelize-create-with-associati
       skills: [{ name: "Gaming", through: { selfGranted: true } }],
     },
   ]);
-})();
+})().catch((err) => console.error(err));
 ```
 
 ## How it works
