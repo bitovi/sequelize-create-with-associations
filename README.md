@@ -1,8 +1,14 @@
-![build workflow](https://github.com/bitovi/sequelize-create-with-associations/actions/workflows/build.yml/badge.svg)
-
 # Sequelize Create With Associations
 
-`@hatchifyjs/sequelize-create-with-associations` is a simple, handy package that extends [Sequelize's](https://sequelize.org/) create and update methods to allow smarter record generations. It lets you automatically create, bulkCreate and update records that have relationships to each other without any extra code.
+![build workflow](https://github.com/bitovi/sequelize-create-with-associations/actions/workflows/build.yml/badge.svg)
+<span class="badge-npmversion"><a href="https://npmjs.org/package/@hatchifyjs/sequelize-create-with-associations" title="View this project on NPM"><img src="https://img.shields.io/npm/v/@hatchifyjs/sequelize-create-with-associations.svg" alt="NPM version" /></a></span>
+
+`@hatchifyjs/sequelize-create-with-associations` is a handy package that extends [Sequelize's](https://sequelize.org/) to simplify the associations.
+
+## Key Features
+
+- Create associations without providing an `includes` declaration
+- Create associations with `update`
 
 ## Need help or have questions?
 
@@ -13,20 +19,114 @@ This project is supported by [Bitovi, a Node consultancy](https://www.bitovi.com
 
 Or, you can hire us for training, consulting, or development. [Set up a free consultation.](https://www.bitovi.com/services/backend/nodejs-consulting)
 
-## Setup
+## Getting Started
 
-To install from npm:
+In this example, we'll be using `sqlite3` as an in-memory data store, but you can use any [data store supported by Sequelize](https://sequelize.org/docs/v6/other-topics/dialect-specific-things/#underlying-connector-libraries).
 
+We'll start by installing dependencies.
+
+```bash
+npm i sequelize @hatchifyjs/sequelize-create-with-associations
+npm i sqlite3 -D
 ```
-npm install sequelize sqlite3 @hatchifyjs/sequelize-create-with-associations
-```
 
-## Basic Use
-
-Create your models like you normally do
+Now we're going to setup our `Sequelize` instance and setup our plugin.
 
 ```js
 const { Sequelize, DataTypes } = require("sequelize");
+const { extendSequelize } = require("@hatchifyjs/sequelize-create-with-associations");
+
+extendSequelize(Sequelize);
+
+const sequelize = new Sequelize("sqlite::memory:", {
+  logging: false,
+});
+
+```
+
+Now create some [Models](https://sequelize.org/docs/v6/core-concepts/model-basics/) to represent your data.
+
+```js
+const User = sequelize.define("User", {
+  name: DataTypes.STRING,
+});
+
+const Skill = sequelize.define("Skill", {
+  name: DataTypes.STRING,
+});
+
+const UserSkill = sequelize.define("UserSkill", {
+  userId: DataTypes.INTEGER,
+  skillId: DataTypes.INTEGER,
+  selfGranted: DataTypes.BOOLEAN,
+});
+
+User.belongsToMany(Skill, {
+  as: "skills",
+  foreignKey: "userId",
+  through: UserSkill,
+});
+
+Skill.belongsToMany(User, {
+  as: "users",
+  foreignKey: "skillId",
+  through: UserSkill,
+});
+
+```
+
+Finally, we will use sequelize's `sync` method to migrate our Model schemas to the database.
+
+Note: this approach should probably not be used in production applications. Consider using [migrations](https://sequelize.org/docs/v6/other-topics/migrations/) instead.
+
+```js
+await sequelize.sync();
+```
+
+Now we're ready to start leveraging this plugin. Try creating a user with a skill.
+
+```js
+await User.create({
+  name: "Justin",
+  skills: [{ name: "Programming" }],
+});
+```
+
+Or update a record with associations.
+
+```js
+await User.update(
+  {
+    name: "Kevin",
+    skills: [{ id: 7 }],
+  },
+  { where: { id: 1 } },
+);
+```
+
+Or even bulk create a record with associations.
+
+```js
+await User.bulkCreate([
+  {
+    name: "John",
+    skills: [{ id: 7 }],
+  },
+  {
+    name: "Jane",
+    skills: [{ name: "Gaming", through: { selfGranted: true } }],
+  },
+]);
+```
+
+Now let's put that all together.
+
+```js
+const { Sequelize, DataTypes } = require("sequelize");
+const { extendSequelize } = require("@hatchifyjs/sequelize-create-with-associations");
+
+// extend Sequelize
+extendSequelize(Sequelize);
 
 // create your Sequelize instance
 const sequelize = new Sequelize("sqlite::memory:", {
@@ -60,97 +160,8 @@ Skill.belongsToMany(User, {
   through: UserSkill,
 });
 
-// create the tables
-await sequelize.sync();
-```
-
-Make sure to activate the new features early in the process, like when you initialize Sequelize:
-
-```js
-const { extendSequelize } = require("@hatchifyjs/sequelize-create-with-associations");
-
-await extendSequelize(Sequelize);
-```
-
-Then use it when you want to create with associations elegantly:
-
-```js
-await User.create({
-  name: "Justin",
-  skills: [{ name: "Programming" }],
-});
-```
-
-Or update with associations:
-
-```js
-await User.update(
-  {
-    name: "Kevin",
-    skills: [{ id: 7 }],
-  },
-  { where: { id: 1 } },
-);
-```
-
-And even when creating in bulk:
-
-```js
-await User.bulkCreate([
-  {
-    name: "John",
-    skills: [{ id: 7 }],
-  },
-  {
-    name: "Jane",
-    skills: [{ name: "Gaming", through: { selfGranted: true } }],
-  },
-]);
-```
-
-Full example:
-
-```js
-const { Sequelize, DataTypes } = require("sequelize");
-const { extendSequelize } = require("@hatchifyjs/sequelize-create-with-associations");
-
 (async function main() {
-  // extend Sequelize
-  await extendSequelize(Sequelize);
-
-  // create your Sequelize instance
-  const sequelize = new Sequelize("sqlite::memory:", {
-    logging: false,
-  });
-
-  // define your models
-  const User = sequelize.define("User", {
-    name: DataTypes.STRING,
-  });
-
-  const Skill = sequelize.define("Skill", {
-    name: DataTypes.STRING,
-  });
-
-  const UserSkill = sequelize.define("UserSkill", {
-    userId: DataTypes.INTEGER,
-    skillId: DataTypes.INTEGER,
-    selfGranted: DataTypes.BOOLEAN,
-  });
-
-  User.belongsToMany(Skill, {
-    as: "skills",
-    foreignKey: "userId",
-    through: UserSkill,
-  });
-
-  Skill.belongsToMany(User, {
-    as: "users",
-    foreignKey: "skillId",
-    through: UserSkill,
-  });
-
-  // create the tables
+  // sync schemas to DB
   await sequelize.sync();
 
   // seed some data
@@ -162,6 +173,7 @@ const { extendSequelize } = require("@hatchifyjs/sequelize-create-with-associati
     skills: [{ name: "Programming" }, { id: cooking.id }],
   });
 
+  // Update a record and setup an association
   await User.update(
     {
       name: "Kevin",
@@ -170,6 +182,7 @@ const { extendSequelize } = require("@hatchifyjs/sequelize-create-with-associati
     { where: { id: justin.id } },
   );
 
+  // Bulk create some records with associations
   await User.bulkCreate([
     {
       name: "John",
@@ -183,11 +196,7 @@ const { extendSequelize } = require("@hatchifyjs/sequelize-create-with-associati
 })().catch((err) => console.error(err));
 ```
 
-## How it works
-
-`sequelize-create-with-associations` updates your Sequelize instance and extends all its basic creation methods to behave in a smarter way.
-
-# We want to hear from you.
+## We want to hear from you
 
 Come chat with us about open source in our Bitovi community [Discord](https://discord.gg/J7ejFsZnJ4).
 

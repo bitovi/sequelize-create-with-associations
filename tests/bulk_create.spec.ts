@@ -14,7 +14,7 @@ describe("Bulk Create", () => {
   let sequelize: Sequelize;
 
   beforeAll(async () => {
-    await extendSequelize(Sequelize);
+    extendSequelize(Sequelize);
 
     sequelize = new Sequelize("sqlite::memory:", {
       logging: false,
