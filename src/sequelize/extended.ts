@@ -59,7 +59,7 @@ export function getLookup(sequelize): AssociationLookup {
   return associationsLookup;
 }
 
-export const extendSequelize = async (SequelizeClass: any) => {
+export const extendSequelize = (SequelizeClass: any) => {
   const origCreate = SequelizeClass.Model.create;
   const origUpdate = SequelizeClass.Model.update;
   const origBulkCreate = SequelizeClass.Model.bulkCreate;
