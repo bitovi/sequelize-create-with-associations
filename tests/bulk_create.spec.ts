@@ -230,6 +230,55 @@ describe("Bulk Create", () => {
     expect(users[1].skill?.name).toEqual("Programming");
   });
 
+  it("Should throw with non-existing IDs through hasOne", async () => {
+    const User = sequelize.define<SingleSkillUserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasOne(Skill, {
+      as: "skill",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    await expect(
+      User.bulkCreate([
+        {
+          name: "Justin",
+          age: 33,
+          skill: { name: "Programming" },
+        },
+        {
+          name: "Kevin",
+          age: 32,
+          skill: { id: -1 },
+        },
+      ]),
+    ).rejects.toEqual(new Error("Skill with ID -1 was not found"));
+  });
+
   it("Should create records associated through hasMany", async () => {
     const User = sequelize.define<UserModel>(
       "User",
@@ -431,6 +480,55 @@ describe("Bulk Create", () => {
     expect(usersWithAssociations[1].age).toEqual(32);
     expect(usersWithAssociations[1].skills).toHaveLength(1);
     expect(usersWithAssociations[1].skills?.[0].name).toEqual("Running");
+  });
+
+  it("Should throw with non-existing IDs through hasMany", async () => {
+    const User = sequelize.define<UserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasMany(Skill, {
+      as: "skills",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    await expect(
+      User.bulkCreate([
+        {
+          name: "Justin",
+          age: 33,
+          skills: [{ name: "Programming" }, { id: -1 }],
+        },
+        {
+          name: "Kevin",
+          age: 32,
+          skills: [{ name: "Running" }],
+        },
+      ]),
+    ).rejects.toEqual(new Error("Skill with ID -1 was not found"));
   });
 
   it("Should create table and records associated through belongsToMany", async () => {
@@ -659,16 +757,16 @@ describe("Bulk Create", () => {
 
     expect(programmingWithUsers?.name).toEqual("Programming");
     expect(programmingWithUsers?.users).toHaveLength(2);
-    expect(programmingWithUsers?.users?.[0]?.id).toEqual(justinId);
-    expect(programmingWithUsers?.users?.[0]?.name).toEqual("Justin");
-    expect(programmingWithUsers?.users?.[0]?.age).toEqual(33);
-    expect(programmingWithUsers?.users?.[0]?.UserSkill?.selfGranted).toBeNull();
-    expect(programmingWithUsers?.users?.[1]?.id).toEqual(kevinId);
-    expect(programmingWithUsers?.users?.[1]?.name).toEqual("Kevin");
-    expect(programmingWithUsers?.users?.[1]?.age).toEqual(32);
-    expect(programmingWithUsers?.users?.[1]?.UserSkill?.selfGranted).toEqual(
+    expect(programmingWithUsers?.users?.[0]?.id).toEqual(kevinId);
+    expect(programmingWithUsers?.users?.[0]?.name).toEqual("Kevin");
+    expect(programmingWithUsers?.users?.[0]?.age).toEqual(32);
+    expect(programmingWithUsers?.users?.[0]?.UserSkill?.selfGranted).toEqual(
       false,
     );
+    expect(programmingWithUsers?.users?.[1]?.id).toEqual(justinId);
+    expect(programmingWithUsers?.users?.[1]?.name).toEqual("Justin");
+    expect(programmingWithUsers?.users?.[1]?.age).toEqual(33);
+    expect(programmingWithUsers?.users?.[1]?.UserSkill?.selfGranted).toBeNull();
 
     const cookingWithUser = await Skill.findByPk(cooking?.id, {
       include: ["users"],
@@ -680,5 +778,69 @@ describe("Bulk Create", () => {
     expect(cookingWithUser?.users?.[0]?.name).toEqual("Justin");
     expect(cookingWithUser?.users?.[0]?.age).toEqual(33);
     expect(cookingWithUser?.users?.[0]?.UserSkill?.selfGranted).toEqual(true);
+  });
+
+  it("Should throw with non-existing IDs through belongsToMany", async () => {
+    const User = sequelize.define<UserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+      },
+      { timestamps: false },
+    );
+
+    const UserSkill = sequelize.define<UserSkillModel>(
+      "UserSkill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        userId: DataTypes.INTEGER,
+        skillId: DataTypes.INTEGER,
+        selfGranted: DataTypes.BOOLEAN,
+      },
+      { timestamps: false },
+    );
+
+    User.belongsToMany(Skill, {
+      as: "skills",
+      foreignKey: "userId",
+      through: UserSkill,
+    });
+
+    Skill.belongsToMany(User, {
+      as: "users",
+      foreignKey: "skillId",
+      through: UserSkill,
+    });
+
+    await sequelize.sync();
+
+    await expect(
+      User.bulkCreate([
+        {
+          name: "Justin",
+          age: 33,
+          skills: [
+            { id: -1 },
+            { name: "Cooking", through: { selfGranted: true } },
+          ],
+        },
+        {
+          name: "Kevin",
+          age: 32,
+          skills: [{ id: -1, through: { selfGranted: false } }],
+        },
+      ]),
+    ).rejects.toEqual(new Error("Skill with ID -1 was not found"));
   });
 });

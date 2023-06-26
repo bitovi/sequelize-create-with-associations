@@ -228,6 +228,48 @@ describe("Create", () => {
     expect(user?.skill?.name).toEqual("Programming");
   });
 
+  it("Should throw with non-existing IDs through hasOne", async () => {
+    const User = sequelize.define<SingleSkillUserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasOne(Skill, {
+      as: "skill",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    await expect(
+      User.create({
+        name: "Justin",
+        age: 32,
+        skill: { id: -1 },
+      }),
+    ).rejects.toEqual(new Error("Skill with ID -1 was not found"));
+  });
+
   it("Should create records associated through hasMany", async () => {
     const User = sequelize.define<UserModel>(
       "User",
@@ -369,6 +411,48 @@ describe("Create", () => {
     expect(userWithAssociations?.age).toEqual(33);
     expect(userWithAssociations?.skills).toHaveLength(1);
     expect(userWithAssociations?.skills?.[0].name).toEqual("Programming");
+  });
+
+  it("Should throw with non-existing IDs through hasMany", async () => {
+    const User = sequelize.define<UserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasMany(Skill, {
+      as: "skills",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    await expect(
+      User.create({
+        name: "Justin",
+        age: 33,
+        skills: [{ name: "Programming" }, { id: -1 }],
+      }),
+    ).rejects.toEqual(new Error("Skill with ID -1 was not found"));
   });
 
   it("Should create table and records associated through belongsToMany", async () => {
@@ -570,5 +654,62 @@ describe("Create", () => {
     expect(cookingWithUser?.users?.[0]?.name).toEqual(user?.name);
     expect(cookingWithUser?.users?.[0]?.age).toEqual(user?.age);
     expect(cookingWithUser?.users?.[0]?.UserSkill?.selfGranted).toEqual(true);
+  });
+
+  it("Should throw with non-existing IDs through belongsToMany", async () => {
+    const User = sequelize.define<UserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+      },
+      { timestamps: false },
+    );
+
+    const UserSkill = sequelize.define<UserSkillModel>(
+      "UserSkill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        userId: DataTypes.INTEGER,
+        skillId: DataTypes.INTEGER,
+        selfGranted: DataTypes.BOOLEAN,
+      },
+      { timestamps: false },
+    );
+
+    User.belongsToMany(Skill, {
+      as: "skills",
+      foreignKey: "userId",
+      through: UserSkill,
+    });
+
+    Skill.belongsToMany(User, {
+      as: "users",
+      foreignKey: "skillId",
+      through: UserSkill,
+    });
+
+    await sequelize.sync();
+
+    await expect(
+      User.create({
+        name: "Justin",
+        age: 33,
+        skills: [
+          { name: "Programming" },
+          { id: -1, through: { selfGranted: true } },
+        ],
+      }),
+    ).rejects.toEqual(new Error("Skill with ID -1 was not found"));
   });
 });

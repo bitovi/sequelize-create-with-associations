@@ -29,6 +29,12 @@ export const handleCreateHasOne = async (
     joinId = model[primaryKey];
   } else {
     joinId = association.attributes[primaryKey];
+
+    if (!(await sequelize.models[association.details.model].findByPk(joinId))) {
+      throw new Error(
+        `${association.details.model} with ID ${joinId} was not found`,
+      );
+    }
   }
   const modelName = association.details.model;
   await modelInstance[`set${modelName}`](joinId, {
@@ -72,6 +78,16 @@ export const handleBulkCreateHasOne = async (
         return modelInstances[index][`set${modelName}`](id, {
           transaction,
         });
+      }
+
+      if (
+        !(await sequelize.models[association.details.model].findByPk(
+          attribute[primaryKey],
+        ))
+      ) {
+        throw new Error(
+          `${association.details.model} with ID ${attribute[primaryKey]} was not found`,
+        );
       }
 
       return modelInstances[index][`set${modelName}`](attribute[primaryKey], {
@@ -120,6 +136,16 @@ export const handleCreateMany = async (
           through: attribute.through,
           transaction,
         });
+      }
+
+      if (
+        !(await sequelize.models[association.details.model].findByPk(
+          attribute[primaryKey],
+        ))
+      ) {
+        throw new Error(
+          `${association.details.model} with ID ${attribute[primaryKey]} was not found`,
+        );
       }
 
       return modelInstance[`add${modelName}`](attribute[primaryKey], {
@@ -172,6 +198,16 @@ export const handleBulkCreateMany = async (
               through: attribute.through,
               transaction,
             });
+          }
+
+          if (
+            !(await sequelize.models[association.details.model].findByPk(
+              attribute[primaryKey],
+            ))
+          ) {
+            throw new Error(
+              `${association.details.model} with ID ${attribute[primaryKey]} was not found`,
+            );
           }
 
           return modelInstances[index][`add${modelName}`](
