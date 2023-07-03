@@ -7,6 +7,7 @@ import type {
   UserModel,
   UserSkillModel,
 } from "./types";
+import { ValidationError } from "../src/sequelize/types";
 
 dotenv.config();
 
@@ -276,7 +277,7 @@ describe("Bulk Create", () => {
           skill: { id: -1 },
         },
       ]),
-    ).rejects.toEqual(new Error("Skill with ID -1 was not found"));
+    ).rejects.toEqual(new ValidationError("Skill with ID -1 was not found"));
   });
 
   it("Should create records associated through hasMany", async () => {
@@ -528,7 +529,7 @@ describe("Bulk Create", () => {
           skills: [{ name: "Running" }],
         },
       ]),
-    ).rejects.toEqual(new Error("Skill with ID -1 was not found"));
+    ).rejects.toEqual(new ValidationError("Skill with ID -1 was not found"));
   });
 
   it("Should create table and records associated through belongsToMany", async () => {
@@ -841,6 +842,6 @@ describe("Bulk Create", () => {
           skills: [{ id: -1, through: { selfGranted: false } }],
         },
       ]),
-    ).rejects.toEqual(new Error("Skill with ID -1 was not found"));
+    ).rejects.toEqual(new ValidationError("Skill with ID -1 was not found"));
   });
 });

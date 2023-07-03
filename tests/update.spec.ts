@@ -7,6 +7,7 @@ import type {
   UserModel,
   UserSkillModel,
 } from "./types";
+import { ValidationError } from "../src/sequelize/types";
 
 dotenv.config();
 
@@ -608,7 +609,7 @@ describe("Update", () => {
         { where: { name: justin.name } },
       ),
     ).rejects.toEqual(
-      new Error("Only updating by the primary key is supported"),
+      new ValidationError("Only updating by the primary key is supported"),
     );
   });
 });

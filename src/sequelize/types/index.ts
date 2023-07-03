@@ -11,3 +11,5 @@ export interface IAssociationBody<T> {
 }
 
 export type JSONAnyObject = Record<string, any>;
+
+export class ValidationError extends Error {}

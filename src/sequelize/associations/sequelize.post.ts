@@ -1,4 +1,5 @@
 import type { Sequelize, Transaction } from "sequelize";
+import { ValidationError } from "../types";
 import type { IAssociationBody, JSONAnyObject } from "../types";
 
 export const handleCreateHasOne = async (
@@ -31,7 +32,7 @@ export const handleCreateHasOne = async (
     joinId = association.attributes[primaryKey];
 
     if (!(await sequelize.models[association.details.model].findByPk(joinId))) {
-      throw new Error(
+      throw new ValidationError(
         `${association.details.model} with ID ${joinId} was not found`,
       );
     }
@@ -85,7 +86,7 @@ export const handleBulkCreateHasOne = async (
           attribute[primaryKey],
         ))
       ) {
-        throw new Error(
+        throw new ValidationError(
           `${association.details.model} with ID ${attribute[primaryKey]} was not found`,
         );
       }
@@ -143,7 +144,7 @@ export const handleCreateMany = async (
           attribute[primaryKey],
         ))
       ) {
-        throw new Error(
+        throw new ValidationError(
           `${association.details.model} with ID ${attribute[primaryKey]} was not found`,
         );
       }
@@ -205,7 +206,7 @@ export const handleBulkCreateMany = async (
               attribute[primaryKey],
             ))
           ) {
-            throw new Error(
+            throw new ValidationError(
               `${association.details.model} with ID ${attribute[primaryKey]} was not found`,
             );
           }
