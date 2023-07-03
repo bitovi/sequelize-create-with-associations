@@ -12,4 +12,9 @@ export interface IAssociationBody<T> {
 
 export type JSONAnyObject = Record<string, any>;
 
-export class ValidationError extends Error {}
+export class ValidationError extends Error {
+  constructor(message?: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "ValidationError";
+  }
+}
