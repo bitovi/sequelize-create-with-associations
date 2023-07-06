@@ -190,6 +190,65 @@ describe("Update", () => {
     expect(await Skill.count()).toEqual(1);
   });
 
+  it("Should disassociate records associated through hasOne", async () => {
+    const User = sequelize.define<SingleSkillUserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasOne(Skill, {
+      as: "skill",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    const justin = await User.create({
+      name: "Justin",
+      age: 33,
+      skill: { name: "Programming" },
+    });
+
+    const [updatedCount] = await User.update(
+      { age: 32, skill: null },
+      { where: { id: justin.id } },
+    );
+
+    expect(updatedCount).toEqual(1);
+
+    const updatedUser = await User.findByPk(justin.id, { include: ["skill"] });
+
+    expect(updatedUser).toEqual(
+      expect.objectContaining({
+        name: "Justin",
+        age: 32,
+        skill: null,
+      }),
+    );
+
+    expect(await Skill.count()).toEqual(1);
+  });
+
   it("Should update records associated through hasMany", async () => {
     const User = sequelize.define<UserModel>(
       "User",
@@ -364,6 +423,68 @@ describe("Update", () => {
     ]);
 
     expect(await Skill.count()).toEqual(3);
+  });
+
+  it("Should disassociate records associated through hasMany", async () => {
+    const User = sequelize.define<UserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasMany(Skill, {
+      as: "skills",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    const user = await User.create({
+      name: "Justin",
+      age: 33,
+      skills: [
+        { name: "Acting" },
+        { name: "Cooking" },
+        { name: "Programming" },
+      ],
+    });
+
+    await User.update(
+      {
+        name: "Kevin",
+        age: 32,
+        skills: [],
+      },
+      { where: { id: user.id } },
+    );
+
+    const updatedUser = await User.findByPk(user.id, { include: ["skills"] });
+    const skills = await Skill.findAll();
+
+    expect(updatedUser).toEqual(
+      expect.objectContaining({ name: "Kevin", age: 32 }),
+    );
+    expect(updatedUser?.skills).toEqual([]);
+    expect(skills).toHaveLength(3);
   });
 
   it("Should update records associated through belongsToMany", async () => {
@@ -560,6 +681,84 @@ describe("Update", () => {
     expect(userSkill.map(({ skillId }) => skillId)).toEqual([justin?.id]);
 
     expect(await Skill.count()).toEqual(1);
+  });
+
+  it("Should disassociate records associated through belongsToMany", async () => {
+    const User = sequelize.define<UserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+      },
+      { timestamps: false },
+    );
+
+    const UserSkill = sequelize.define<UserSkillModel>(
+      "UserSkill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        userId: DataTypes.INTEGER,
+        skillId: DataTypes.INTEGER,
+        selfGranted: DataTypes.BOOLEAN,
+      },
+      { timestamps: false },
+    );
+
+    User.belongsToMany(Skill, {
+      as: "skills",
+      foreignKey: "userId",
+      through: UserSkill,
+    });
+
+    Skill.belongsToMany(User, {
+      as: "users",
+      foreignKey: "skillId",
+      through: UserSkill,
+    });
+
+    await sequelize.sync();
+
+    const user = await User.create({
+      name: "Justin",
+      age: 33,
+      skills: [
+        { name: "Acting", through: { selfGranted: true } },
+        { name: "Cooking" },
+        { name: "Programming", through: { selfGranted: false } },
+      ],
+    });
+
+    await User.update(
+      {
+        age: 32,
+        skills: [],
+      },
+      { where: { id: user.id } },
+    );
+
+    const updatedUser = await User.findByPk(user.id, { include: ["skills"] });
+
+    expect(sequelize.models).toHaveProperty("UserSkill");
+    expect(updatedUser?.skills).toEqual([]);
+
+    const userSkill = await UserSkill.findAll({
+      attributes: ["skillId"],
+      where: { userId: user.id },
+    });
+
+    expect(userSkill).toEqual([]);
+
+    expect(await Skill.count()).toEqual(3);
   });
 
   it("Should throw a proper error when trying to update without an ID", async () => {

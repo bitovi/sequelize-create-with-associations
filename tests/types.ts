@@ -40,7 +40,7 @@ export interface SingleSkillUserModel
   id: CreationOptional<number>;
   name: string;
   age: number;
-  skill?: Partial<SkillModel>;
+  skill?: Partial<SkillModel> | null;
 }
 
 export interface UserSkillModel
