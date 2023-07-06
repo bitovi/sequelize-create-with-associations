@@ -22,7 +22,7 @@ export const handleUpdateOne = async (
   }
 
   await modelInstance[`set${association.details.model}`](
-    association.attributes[primaryKey],
+    association.attributes?.[primaryKey] || null,
     { transaction },
   );
 };
@@ -38,7 +38,7 @@ export const handleUpdateMany = async (
     model[primaryKey],
   );
 
-  if (!modelInstance || !association.attributes.length) return;
+  if (!modelInstance) return;
 
   const modelNameInPlural = pluralize(association.details.model);
 
