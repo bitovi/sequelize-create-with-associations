@@ -6,6 +6,7 @@ const config: JestConfigWithTsJest = {
   coverageDirectory: "coverage",
   coverageProvider: "v8",
   coverageReporters: ["html", "text", "text-summary"],
+  setupFilesAfterEnv: ["./jest.setup.ts"],
   testEnvironment: "node",
   transform: { ".+\\.ts$": "ts-jest" },
   testTimeout: 90000,

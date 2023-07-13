@@ -7,6 +7,6 @@
     "strictNullChecks": true,
     "lib": ["ESNext"]
   },
-  "include": ["./src/**/*"],
+  "include": ["jest.d.ts", "./src/**/*"],
   "exclude": ["./dist/**/*", "./bin/**/*", "node_modules"]
 }

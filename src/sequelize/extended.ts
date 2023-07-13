@@ -16,7 +16,7 @@ import {
   handleCreateAssociations,
   handleUpdateAssociations,
 } from "./associations";
-import { ValidationError } from "./types";
+import { UnexpectedValueError } from "./types";
 import type { IAssociation } from "./types";
 
 type AssociationLookup = Record<string, Record<string, IAssociation>>;
@@ -218,9 +218,11 @@ export const extendSequelize = (SequelizeClass: any) => {
     if (!externalAssociations.length) {
       return origUpdate.apply(this, [attributes, ops]);
     } else if (!modelId) {
-      throw new ValidationError(
-        "Only updating by the primary key is supported",
-      );
+      throw [
+        new UnexpectedValueError({
+          detail: "Only updating by the primary key is supported",
+        }),
+      ];
     }
 
     const transaction = await this.sequelize.transaction();

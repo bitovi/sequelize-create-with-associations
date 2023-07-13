@@ -7,7 +7,7 @@ import type {
   UserModel,
   UserSkillModel,
 } from "./types";
-import { ValidationError } from "../src/sequelize/types";
+import { NotFoundError } from "../src/sequelize/types";
 
 dotenv.config();
 
@@ -277,7 +277,12 @@ describe("Bulk Create", () => {
           skill: { id: -1 },
         },
       ]),
-    ).rejects.toEqual(new ValidationError("Skill with ID -1 was not found"));
+    ).rejects.toEqualErrors([
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/1/relationships/skill",
+      }),
+    ]);
   });
 
   it("Should create records associated through hasMany", async () => {
@@ -526,10 +531,23 @@ describe("Bulk Create", () => {
         {
           name: "Kevin",
           age: 32,
-          skills: [{ name: "Running" }],
+          skills: [{ name: "Running" }, { id: -2 }, { id: -3 }],
         },
       ]),
-    ).rejects.toEqual(new ValidationError("Skill with ID -1 was not found"));
+    ).rejects.toEqualErrors([
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/0/relationships/skills/1",
+      }),
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/1/relationships/skills/1",
+      }),
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/1/relationships/skills/2",
+      }),
+    ]);
   });
 
   it("Should create table and records associated through belongsToMany", async () => {
@@ -839,9 +857,25 @@ describe("Bulk Create", () => {
         {
           name: "Kevin",
           age: 32,
-          skills: [{ id: -1, through: { selfGranted: false } }],
+          skills: [
+            { id: -2, through: { selfGranted: false } },
+            { id: -3, through: { selfGranted: true } },
+          ],
         },
       ]),
-    ).rejects.toEqual(new ValidationError("Skill with ID -1 was not found"));
+    ).rejects.toEqualErrors([
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/0/relationships/skills/0",
+      }),
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/1/relationships/skills/0",
+      }),
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/1/relationships/skills/1",
+      }),
+    ]);
   });
 });

@@ -7,7 +7,7 @@ import type {
   UserModel,
   UserSkillModel,
 } from "./types";
-import { ValidationError } from "../src/sequelize/types";
+import { NotFoundError, UnexpectedValueError } from "../src/sequelize/types";
 
 dotenv.config();
 
@@ -249,6 +249,55 @@ describe("Update", () => {
     expect(await Skill.count()).toEqual(1);
   });
 
+  it("Should throw with non-existing IDs through hasOne", async () => {
+    const User = sequelize.define<SingleSkillUserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasOne(Skill, {
+      as: "skill",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    const justin = await User.create({
+      name: "Justin",
+      age: 33,
+      skill: { name: "Programming" },
+    });
+
+    await expect(
+      User.update({ age: 32, skill: { id: -1 } }, { where: { id: justin.id } }),
+    ).rejects.toEqualErrors([
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/relationships/skill",
+      }),
+    ]);
+  });
+
   it("Should update records associated through hasMany", async () => {
     const User = sequelize.define<UserModel>(
       "User",
@@ -485,6 +534,70 @@ describe("Update", () => {
     );
     expect(updatedUser?.skills).toEqual([]);
     expect(skills).toHaveLength(3);
+  });
+
+  it("Should throw with non-existing IDs through hasMany", async () => {
+    const User = sequelize.define<UserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasMany(Skill, {
+      as: "skills",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    const user = await User.create({
+      name: "Justin",
+      age: 33,
+      skills: [
+        { name: "Acting" },
+        { name: "Cooking" },
+        { name: "Programming" },
+      ],
+    });
+
+    await expect(
+      User.update(
+        {
+          name: "Kevin",
+          age: 32,
+          skills: [{ id: -1 }, { id: -2 }],
+        },
+        { where: { id: user.id } },
+      ),
+    ).rejects.toEqualErrors([
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/relationships/skills/0",
+      }),
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/relationships/skills/1",
+      }),
+    ]);
   });
 
   it("Should update records associated through belongsToMany", async () => {
@@ -761,7 +874,82 @@ describe("Update", () => {
     expect(await Skill.count()).toEqual(3);
   });
 
-  it("Should throw a proper error when trying to update without an ID", async () => {
+  it("Should throw with non-existing IDs through belongsToMany", async () => {
+    const User = sequelize.define<UserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+      },
+      { timestamps: false },
+    );
+
+    const UserSkill = sequelize.define<UserSkillModel>(
+      "UserSkill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        userId: DataTypes.INTEGER,
+        skillId: DataTypes.INTEGER,
+        selfGranted: DataTypes.BOOLEAN,
+      },
+      { timestamps: false },
+    );
+
+    User.belongsToMany(Skill, {
+      as: "skills",
+      foreignKey: "userId",
+      through: UserSkill,
+    });
+
+    Skill.belongsToMany(User, {
+      as: "users",
+      foreignKey: "skillId",
+      through: UserSkill,
+    });
+
+    await sequelize.sync();
+
+    const user = await User.create({
+      name: "Justin",
+      age: 33,
+      skills: [
+        { name: "Acting", through: { selfGranted: true } },
+        { name: "Cooking" },
+        { name: "Programming", through: { selfGranted: false } },
+      ],
+    });
+
+    await expect(
+      User.update(
+        {
+          age: 32,
+          skills: [{ id: -1 }, { id: -2 }],
+        },
+        { where: { id: user.id } },
+      ),
+    ).rejects.toEqualErrors([
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/relationships/skills/0",
+      }),
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/relationships/skills/1",
+      }),
+    ]);
+  });
+
+  it("Should throw a proper error when trying to update without an ID through hasOne", async () => {
     const User = sequelize.define<SingleSkillUserModel>(
       "User",
       {
@@ -807,8 +995,85 @@ describe("Update", () => {
         { age: 32, skill: { id: cooking.id } },
         { where: { name: justin.name } },
       ),
-    ).rejects.toEqual(
-      new ValidationError("Only updating by the primary key is supported"),
+    ).rejects.toEqualErrors([
+      new UnexpectedValueError({
+        detail: "Only updating by the primary key is supported",
+      }),
+    ]);
+  });
+
+  it("Should throw a proper error when trying to update without an ID through hasMany", async () => {
+    const User = sequelize.define<UserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
     );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasMany(Skill, {
+      as: "skills",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    const user = await User.create({
+      name: "Justin",
+      age: 33,
+      skills: [
+        { name: "Acting" },
+        { name: "Cooking" },
+        { name: "Programming" },
+      ],
+    });
+
+    const [cooking, programming, running] = await Promise.all([
+      Skill.findOne({
+        where: { name: "Cooking" },
+      }),
+      Skill.findOne({
+        where: { name: "Programming" },
+      }),
+      Skill.create({
+        name: "Running",
+      }),
+    ]);
+
+    await expect(
+      User.update(
+        {
+          name: "Kevin",
+          age: 32,
+          skills: [
+            { id: cooking?.id },
+            { id: programming?.id },
+            { id: running?.id },
+          ],
+        },
+        { where: { name: user.name } },
+      ),
+    ).rejects.toEqualErrors([
+      new UnexpectedValueError({
+        detail: "Only updating by the primary key is supported",
+      }),
+    ]);
   });
 });
