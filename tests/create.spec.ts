@@ -7,7 +7,7 @@ import type {
   UserModel,
   UserSkillModel,
 } from "./types";
-import { ValidationError } from "../src/sequelize/types";
+import { NotFoundError } from "../src/sequelize/types";
 
 dotenv.config();
 
@@ -268,7 +268,12 @@ describe("Create", () => {
         age: 32,
         skill: { id: -1 },
       }),
-    ).rejects.toEqual(new ValidationError("Skill with ID -1 was not found"));
+    ).rejects.toEqualErrors([
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/relationships/skill",
+      }),
+    ]);
   });
 
   it("Should create records associated through hasMany", async () => {
@@ -451,9 +456,18 @@ describe("Create", () => {
       User.create({
         name: "Justin",
         age: 33,
-        skills: [{ name: "Programming" }, { id: -1 }],
+        skills: [{ name: "Programming" }, { id: -1 }, { id: -2 }],
       }),
-    ).rejects.toEqual(new ValidationError("Skill with ID -1 was not found"));
+    ).rejects.toEqualErrors([
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/relationships/skills/1",
+      }),
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/relationships/skills/2",
+      }),
+    ]);
   });
 
   it("Should create table and records associated through belongsToMany", async () => {
@@ -709,8 +723,18 @@ describe("Create", () => {
         skills: [
           { name: "Programming" },
           { id: -1, through: { selfGranted: true } },
+          { id: -2, through: { selfGranted: false } },
         ],
       }),
-    ).rejects.toEqual(new ValidationError("Skill with ID -1 was not found"));
+    ).rejects.toEqualErrors([
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/relationships/skills/1",
+      }),
+      new NotFoundError({
+        detail: "Payload must include an ID of an existing 'Skill'.",
+        pointer: "/data/relationships/skills/2",
+      }),
+    ]);
   });
 });

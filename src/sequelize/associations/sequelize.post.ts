@@ -1,6 +1,7 @@
 import type { Sequelize, Transaction } from "sequelize";
-import { ValidationError } from "../types";
+import { NotFoundError } from "../types";
 import type { IAssociationBody, JSONAnyObject } from "../types";
+import { pluralize } from "inflection";
 
 export const handleCreateHasOne = async (
   sequelize: Sequelize,
@@ -9,6 +10,7 @@ export const handleCreateHasOne = async (
   transaction: Transaction,
   primaryKey = "id",
 ): Promise<void> => {
+  const modelName = association.details.model;
   const modelInstance = await sequelize.models[model.name].findByPk(
     model[primaryKey],
     {
@@ -16,12 +18,12 @@ export const handleCreateHasOne = async (
     },
   );
   if (!modelInstance) {
-    throw new Error("Unable to find Created Model");
+    throw [new Error("Unable to find created model")];
   }
   let joinId: string | undefined;
   const isCreate = !association.attributes[primaryKey];
   if (isCreate) {
-    const model = await sequelize.models[association.details.model].create(
+    const model = await sequelize.models[modelName].create(
       association.attributes,
       {
         transaction,
@@ -31,13 +33,16 @@ export const handleCreateHasOne = async (
   } else {
     joinId = association.attributes[primaryKey];
 
-    if (!(await sequelize.models[association.details.model].findByPk(joinId))) {
-      throw new ValidationError(
-        `${association.details.model} with ID ${joinId} was not found`,
-      );
+    if (!(await sequelize.models[modelName].findByPk(joinId))) {
+      throw [
+        new NotFoundError({
+          detail: `Payload must include an ID of an existing '${modelName}'.`,
+          pointer: `/data/relationships/${modelName.toLowerCase()}`,
+        }),
+      ];
     }
   }
-  const modelName = association.details.model;
+
   await modelInstance[`set${modelName}`](joinId, {
     transaction,
   });
@@ -58,7 +63,7 @@ export const handleBulkCreateHasOne = async (
   });
 
   if (modelInstances.length !== model.id.length) {
-    throw new Error("Not all models were successfully created");
+    throw [new Error("Not all models were successfully created")];
   }
 
   const modelName = association.details.model;
@@ -69,7 +74,7 @@ export const handleBulkCreateHasOne = async (
 
       if (isCreate) {
         const id = (
-          await sequelize.models[association.details.model].create(attribute, {
+          await sequelize.models[modelName].create(attribute, {
             transaction,
           })
         )
@@ -82,13 +87,14 @@ export const handleBulkCreateHasOne = async (
       }
 
       if (
-        !(await sequelize.models[association.details.model].findByPk(
-          attribute[primaryKey],
-        ))
+        !(await sequelize.models[modelName].findByPk(attribute[primaryKey]))
       ) {
-        throw new ValidationError(
-          `${association.details.model} with ID ${attribute[primaryKey]} was not found`,
-        );
+        throw [
+          new NotFoundError({
+            detail: `Payload must include an ID of an existing '${modelName}'.`,
+            pointer: `/data/${index}/relationships/${modelName.toLowerCase()}`,
+          }),
+        ];
       }
 
       return modelInstances[index][`set${modelName}`](attribute[primaryKey], {
@@ -105,7 +111,6 @@ export const handleCreateMany = async (
   transaction: Transaction,
   primaryKey = "id",
 ): Promise<void> => {
-  // Create an instance of the model using the id
   const modelInstance = await sequelize.models[model.name].findByPk(
     model[primaryKey],
     {
@@ -114,13 +119,13 @@ export const handleCreateMany = async (
   );
 
   if (!modelInstance) {
-    throw new Error("Unable to find Created Model");
+    throw [new Error("Unable to find created model")];
   }
 
   const modelName = association.details.model;
 
-  await Promise.all(
-    association.attributes.map(async (attribute) => {
+  const results = await Promise.allSettled(
+    association.attributes.map(async (attribute, index) => {
       const isCreate = !attribute[primaryKey];
 
       if (isCreate) {
@@ -140,13 +145,14 @@ export const handleCreateMany = async (
       }
 
       if (
-        !(await sequelize.models[association.details.model].findByPk(
-          attribute[primaryKey],
-        ))
+        !(await sequelize.models[modelName].findByPk(attribute[primaryKey]))
       ) {
-        throw new ValidationError(
-          `${association.details.model} with ID ${attribute[primaryKey]} was not found`,
-        );
+        throw new NotFoundError({
+          detail: `Payload must include an ID of an existing '${modelName}'.`,
+          pointer: `/data/relationships/${pluralize(
+            modelName.toLowerCase(),
+          )}/${index}`,
+        });
       }
 
       return modelInstance[`add${modelName}`](attribute[primaryKey], {
@@ -155,6 +161,14 @@ export const handleCreateMany = async (
       });
     }),
   );
+
+  const errors = results.reduce(
+    (acc, result) =>
+      result.status === "fulfilled" ? acc : [...acc, result.reason],
+    [],
+  );
+
+  if (errors.length) throw errors;
 };
 
 export const handleBulkCreateMany = async (
@@ -173,21 +187,21 @@ export const handleBulkCreateMany = async (
   });
 
   if (modelInstances.length !== model.id.length) {
-    throw new Error("Not all models were successfully created");
+    throw [new Error("Not all models were successfully created")];
   }
 
   const modelName = association.details.model;
 
-  await Promise.all(
+  const results = await Promise.all(
     association.attributes.map(async (attributes, index) => {
-      return Promise.all(
-        attributes.map(async (attribute) => {
+      return Promise.allSettled(
+        attributes.map(async (attribute, index2) => {
           const isCreate = !attribute[primaryKey];
 
           if (isCreate) {
             // Create the models first and add their ids to the joinIds.
             const id = (
-              await sequelize.models[association.details.model].create(
+              await sequelize.models[modelName].create(
                 { ...attribute, through: undefined },
                 { transaction },
               )
@@ -202,13 +216,14 @@ export const handleBulkCreateMany = async (
           }
 
           if (
-            !(await sequelize.models[association.details.model].findByPk(
-              attribute[primaryKey],
-            ))
+            !(await sequelize.models[modelName].findByPk(attribute[primaryKey]))
           ) {
-            throw new ValidationError(
-              `${association.details.model} with ID ${attribute[primaryKey]} was not found`,
-            );
+            throw new NotFoundError({
+              detail: `Payload must include an ID of an existing '${modelName}'.`,
+              pointer: `/data/${index}/relationships/${pluralize(
+                modelName.toLowerCase(),
+              )}/${index2}`,
+            });
           }
 
           return modelInstances[index][`add${modelName}`](
@@ -222,4 +237,14 @@ export const handleBulkCreateMany = async (
       );
     }),
   );
+
+  const errors = results
+    .flat()
+    .reduce(
+      (acc, result) =>
+        result.status === "fulfilled" ? acc : [...acc, result.reason],
+      [],
+    );
+
+  if (errors.length) throw errors;
 };

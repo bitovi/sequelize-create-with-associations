@@ -1,6 +1,8 @@
 import { pluralize } from "inflection";
+import { Op } from "sequelize";
 import type { Sequelize, Transaction } from "sequelize";
 
+import { NotFoundError } from "../types";
 import type { IAssociationBody } from "../types";
 
 export const handleUpdateOne = async (
@@ -10,21 +12,35 @@ export const handleUpdateOne = async (
   transaction: Transaction,
   primaryKey = "id",
 ): Promise<void> => {
-  const modelInstance = await sequelize.models[model.name].findByPk(
-    model[primaryKey],
-    {
+  const modelName = association.details.model;
+  const associatedId = association.attributes?.[primaryKey] || null;
+  const [modelInstance, associatedInstance] = await Promise.all([
+    sequelize.models[model.name].findByPk(model[primaryKey], {
       transaction,
-    },
-  );
+    }),
+    associatedId
+      ? sequelize.models[modelName].findByPk(associatedId, {
+          transaction,
+        })
+      : null,
+  ]);
 
   if (!modelInstance) {
-    throw new Error("Unable to find Created Model");
+    throw [new Error("Unable to find created model")];
   }
 
-  await modelInstance[`set${association.details.model}`](
-    association.attributes?.[primaryKey] || null,
-    { transaction },
-  );
+  if (associatedId && !associatedInstance) {
+    throw [
+      new NotFoundError({
+        detail: `Payload must include an ID of an existing '${modelName}'.`,
+        pointer: `/data/relationships/${modelName.toLowerCase()}`,
+      }),
+    ];
+  }
+
+  await modelInstance[`set${modelName}`](associatedId, {
+    transaction,
+  });
 };
 
 export const handleUpdateMany = async (
@@ -34,15 +50,46 @@ export const handleUpdateMany = async (
   transaction: Transaction,
   primaryKey = "id",
 ): Promise<void> => {
-  const modelInstance = await sequelize.models[model.name].findByPk(
-    model[primaryKey],
-  );
+  const modelName = association.details.model;
+  const associatedIds = association.attributes.map((data) => data[primaryKey]);
+  const [modelInstance, associatedInstances] = await Promise.all([
+    sequelize.models[model.name].findByPk(model[primaryKey], {
+      transaction,
+    }),
+    associatedIds.length
+      ? sequelize.models[modelName].findAll({
+          where: { id: { [Op.in]: associatedIds } },
+          transaction,
+        })
+      : [],
+  ]);
 
   if (!modelInstance) return;
 
-  const modelNameInPlural = pluralize(association.details.model);
+  if (
+    associatedIds.length &&
+    associatedInstances.length < associatedIds.length
+  ) {
+    throw associatedIds.reduce(
+      (acc, associatedId, index) =>
+        associatedInstances.some(
+          ({ dataValues: { id } }) => id === associatedId,
+        )
+          ? acc
+          : [
+              ...acc,
+              new NotFoundError({
+                detail: `Payload must include an ID of an existing '${modelName}'.`,
+                pointer: `/data/relationships/${pluralize(
+                  modelName.toLowerCase(),
+                )}/${index}`,
+              }),
+            ],
+      [],
+    );
+  }
 
-  await modelInstance[`set${modelNameInPlural}`](
+  await modelInstance[`set${pluralize(association.details.model)}`](
     association.attributes.map((data) => data[primaryKey]),
     {
       transaction,
