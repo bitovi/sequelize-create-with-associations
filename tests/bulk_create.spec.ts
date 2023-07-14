@@ -280,7 +280,7 @@ describe("Bulk Create", () => {
     ).rejects.toEqualErrors([
       new NotFoundError({
         detail: "Payload must include an ID of an existing 'Skill'.",
-        pointer: "/data/1/relationships/skill",
+        pointer: "/data/1/relationships/skill/data/id",
       }),
     ]);
   });
@@ -537,15 +537,15 @@ describe("Bulk Create", () => {
     ).rejects.toEqualErrors([
       new NotFoundError({
         detail: "Payload must include an ID of an existing 'Skill'.",
-        pointer: "/data/0/relationships/skills/1",
+        pointer: "/data/0/relationships/skills/1/data/id",
       }),
       new NotFoundError({
         detail: "Payload must include an ID of an existing 'Skill'.",
-        pointer: "/data/1/relationships/skills/1",
+        pointer: "/data/1/relationships/skills/1/data/id",
       }),
       new NotFoundError({
         detail: "Payload must include an ID of an existing 'Skill'.",
-        pointer: "/data/1/relationships/skills/2",
+        pointer: "/data/1/relationships/skills/2/data/id",
       }),
     ]);
   });
@@ -866,15 +866,15 @@ describe("Bulk Create", () => {
     ).rejects.toEqualErrors([
       new NotFoundError({
         detail: "Payload must include an ID of an existing 'Skill'.",
-        pointer: "/data/0/relationships/skills/0",
+        pointer: "/data/0/relationships/skills/0/data/id",
       }),
       new NotFoundError({
         detail: "Payload must include an ID of an existing 'Skill'.",
-        pointer: "/data/1/relationships/skills/0",
+        pointer: "/data/1/relationships/skills/0/data/id",
       }),
       new NotFoundError({
         detail: "Payload must include an ID of an existing 'Skill'.",
-        pointer: "/data/1/relationships/skills/1",
+        pointer: "/data/1/relationships/skills/1/data/id",
       }),
     ]);
   });

@@ -24,7 +24,7 @@ export class HatchifyError extends Error {
   constructor({
     status = statusCodes.INTERNAL_SERVER_ERROR,
     code = codes.ERR_SERVER_ERROR,
-    title,
+    title = "Server Error ocurred",
     detail,
     pointer,
   }: HatchifyErrorOptions) {
