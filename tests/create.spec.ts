@@ -461,11 +461,11 @@ describe("Create", () => {
     ).rejects.toEqualErrors([
       new NotFoundError({
         detail: "Payload must include an ID of an existing 'Skill'.",
-        pointer: "/data/relationships/skills/1/data/id",
+        pointer: "/data/relationships/skills/data/1/id",
       }),
       new NotFoundError({
         detail: "Payload must include an ID of an existing 'Skill'.",
-        pointer: "/data/relationships/skills/2/data/id",
+        pointer: "/data/relationships/skills/data/2/id",
       }),
     ]);
   });
@@ -729,11 +729,11 @@ describe("Create", () => {
     ).rejects.toEqualErrors([
       new NotFoundError({
         detail: "Payload must include an ID of an existing 'Skill'.",
-        pointer: "/data/relationships/skills/1/data/id",
+        pointer: "/data/relationships/skills/data/1/id",
       }),
       new NotFoundError({
         detail: "Payload must include an ID of an existing 'Skill'.",
-        pointer: "/data/relationships/skills/2/data/id",
+        pointer: "/data/relationships/skills/data/2/id",
       }),
     ]);
   });

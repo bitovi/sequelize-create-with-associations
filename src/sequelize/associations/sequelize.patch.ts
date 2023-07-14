@@ -82,7 +82,7 @@ export const handleUpdateMany = async (
                 detail: `Payload must include an ID of an existing '${modelName}'.`,
                 pointer: `/data/relationships/${pluralize(
                   modelName.toLowerCase(),
-                )}/${index}/data/id`,
+                )}/data/${index}/id`,
               }),
             ],
       [],

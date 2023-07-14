@@ -151,7 +151,7 @@ export const handleCreateMany = async (
           detail: `Payload must include an ID of an existing '${modelName}'.`,
           pointer: `/data/relationships/${pluralize(
             modelName.toLowerCase(),
-          )}/${index}/data/id`,
+          )}/data/${index}/id`,
         });
       }
 
@@ -222,7 +222,7 @@ export const handleBulkCreateMany = async (
               detail: `Payload must include an ID of an existing '${modelName}'.`,
               pointer: `/data/${index}/relationships/${pluralize(
                 modelName.toLowerCase(),
-              )}/${index2}/data/id`,
+              )}/data/${index2}/id`,
             });
           }
 
