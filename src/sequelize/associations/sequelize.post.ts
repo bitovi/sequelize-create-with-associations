@@ -37,7 +37,7 @@ export const handleCreateHasOne = async (
       throw [
         new NotFoundError({
           detail: `Payload must include an ID of an existing '${modelName}'.`,
-          pointer: `/data/relationships/${modelName.toLowerCase()}`,
+          pointer: `/data/relationships/${modelName.toLowerCase()}/data/id`,
         }),
       ];
     }
@@ -92,7 +92,7 @@ export const handleBulkCreateHasOne = async (
         throw [
           new NotFoundError({
             detail: `Payload must include an ID of an existing '${modelName}'.`,
-            pointer: `/data/${index}/relationships/${modelName.toLowerCase()}`,
+            pointer: `/data/${index}/relationships/${modelName.toLowerCase()}/data/id`,
           }),
         ];
       }
@@ -151,7 +151,7 @@ export const handleCreateMany = async (
           detail: `Payload must include an ID of an existing '${modelName}'.`,
           pointer: `/data/relationships/${pluralize(
             modelName.toLowerCase(),
-          )}/${index}`,
+          )}/${index}/data/id`,
         });
       }
 
@@ -222,7 +222,7 @@ export const handleBulkCreateMany = async (
               detail: `Payload must include an ID of an existing '${modelName}'.`,
               pointer: `/data/${index}/relationships/${pluralize(
                 modelName.toLowerCase(),
-              )}/${index2}`,
+              )}/${index2}/data/id`,
             });
           }
 
