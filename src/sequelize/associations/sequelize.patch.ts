@@ -5,6 +5,7 @@ import type { Sequelize, Transaction } from "sequelize";
 import { NotFoundError } from "../types";
 import type { IAssociationBody } from "../types";
 import { camelCaseToPascalCase } from "../util/camelCaseToPascalCase";
+import { pascalCaseToCamelCase } from "../util/pascalCaseToCamelCase";
 
 export const handleUpdateOne = async (
   sequelize: Sequelize,
@@ -34,12 +35,15 @@ export const handleUpdateOne = async (
     throw [
       new NotFoundError({
         detail: `Payload must include an ID of an existing '${modelName}'.`,
-        pointer: `/data/relationships/${as}/data/id`,
+        pointer: `/data/relationships/${
+          as ?? pascalCaseToCamelCase(modelName)
+        }/data/id`,
       }),
     ];
   }
 
-  await modelInstance[`set${camelCaseToPascalCase(as)}`](associatedId, {
+  const setter = `set${as ? camelCaseToPascalCase(as) : modelName}`;
+  await modelInstance[setter](associatedId, {
     transaction,
   });
 };
@@ -82,7 +86,7 @@ export const handleUpdateMany = async (
               new NotFoundError({
                 detail: `Payload must include an ID of an existing '${modelName}'.`,
                 pointer: `/data/relationships/${pluralize(
-                  as,
+                  as ?? pascalCaseToCamelCase(modelName),
                 )}/data/${index}/id`,
               }),
             ],
@@ -90,7 +94,8 @@ export const handleUpdateMany = async (
     );
   }
 
-  await modelInstance[`set${pluralize(as)}`](
+  const setter = `set${pluralize(as ? camelCaseToPascalCase(as) : modelName)}`;
+  await modelInstance[setter](
     association.attributes.map((data) => data[primaryKey]),
     {
       transaction,

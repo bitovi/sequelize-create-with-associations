@@ -3,6 +3,7 @@ import { NotFoundError } from "../types";
 import type { IAssociationBody, JSONAnyObject } from "../types";
 import { pluralize } from "inflection";
 import { camelCaseToPascalCase } from "../util/camelCaseToPascalCase";
+import { pascalCaseToCamelCase } from "../util/pascalCaseToCamelCase";
 
 export const handleCreateHasOne = async (
   sequelize: Sequelize,
@@ -38,13 +39,16 @@ export const handleCreateHasOne = async (
       throw [
         new NotFoundError({
           detail: `Payload must include an ID of an existing '${modelName}'.`,
-          pointer: `/data/relationships/${as}/data/id`,
+          pointer: `/data/relationships/${
+            as ?? pascalCaseToCamelCase(modelName)
+          }/data/id`,
         }),
       ];
     }
   }
 
-  await modelInstance[`set${camelCaseToPascalCase(as)}`](joinId, {
+  const setter = `set${as ? camelCaseToPascalCase(as) : modelName}`;
+  await modelInstance[setter](joinId, {
     transaction,
   });
 };
