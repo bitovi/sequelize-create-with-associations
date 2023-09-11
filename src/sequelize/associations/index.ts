@@ -67,7 +67,10 @@ export const handleCreateAssociations = async (
   primaryKey = "id",
 ): Promise<void> => {
   for (const association of validAssociations) {
-    const associationDetails = associations[association];
+    const associationDetails = {
+      ...associations[association],
+      as: association,
+    };
     const associationAttribute = attributes[association];
 
     switch (associationDetails.type) {
