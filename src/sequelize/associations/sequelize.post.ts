@@ -2,6 +2,7 @@ import type { Sequelize, Transaction } from "sequelize";
 import { NotFoundError } from "../types";
 import type { IAssociationBody, JSONAnyObject } from "../types";
 import { pluralize } from "inflection";
+import { camelCaseToPascalCase } from "../util/camelCaseToPascalCase";
 
 export const handleCreateHasOne = async (
   sequelize: Sequelize,
@@ -10,7 +11,7 @@ export const handleCreateHasOne = async (
   transaction: Transaction,
   primaryKey = "id",
 ): Promise<void> => {
-  const modelName = association.details.model;
+  const { model: modelName, as } = association.details;
   const modelInstance = await sequelize.models[model.name].findByPk(
     model[primaryKey],
     {
@@ -37,13 +38,13 @@ export const handleCreateHasOne = async (
       throw [
         new NotFoundError({
           detail: `Payload must include an ID of an existing '${modelName}'.`,
-          pointer: `/data/relationships/${modelName.toLowerCase()}/data/id`,
+          pointer: `/data/relationships/${as}/data/id`,
         }),
       ];
     }
   }
 
-  await modelInstance[`set${modelName}`](joinId, {
+  await modelInstance[`set${camelCaseToPascalCase(as)}`](joinId, {
     transaction,
   });
 };

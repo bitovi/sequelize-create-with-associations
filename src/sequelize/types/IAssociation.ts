@@ -3,4 +3,5 @@ export interface IAssociation {
   key: string;
   model: string;
   joinTable?: string;
+  as: string;
 }

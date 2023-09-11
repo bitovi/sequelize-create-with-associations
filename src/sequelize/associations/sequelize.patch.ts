@@ -4,6 +4,7 @@ import type { Sequelize, Transaction } from "sequelize";
 
 import { NotFoundError } from "../types";
 import type { IAssociationBody } from "../types";
+import { camelCaseToPascalCase } from "../util/camelCaseToPascalCase";
 
 export const handleUpdateOne = async (
   sequelize: Sequelize,
@@ -12,7 +13,7 @@ export const handleUpdateOne = async (
   transaction: Transaction,
   primaryKey = "id",
 ): Promise<void> => {
-  const modelName = association.details.model;
+  const { model: modelName, as } = association.details;
   const associatedId = association.attributes?.[primaryKey] || null;
   const [modelInstance, associatedInstance] = await Promise.all([
     sequelize.models[model.name].findByPk(model[primaryKey], {
@@ -33,12 +34,12 @@ export const handleUpdateOne = async (
     throw [
       new NotFoundError({
         detail: `Payload must include an ID of an existing '${modelName}'.`,
-        pointer: `/data/relationships/${modelName.toLowerCase()}/data/id`,
+        pointer: `/data/relationships/${as}/data/id`,
       }),
     ];
   }
 
-  await modelInstance[`set${modelName}`](associatedId, {
+  await modelInstance[`set${camelCaseToPascalCase(as)}`](associatedId, {
     transaction,
   });
 };
@@ -50,7 +51,7 @@ export const handleUpdateMany = async (
   transaction: Transaction,
   primaryKey = "id",
 ): Promise<void> => {
-  const modelName = association.details.model;
+  const { model: modelName, as } = association.details;
   const associatedIds = association.attributes.map((data) => data[primaryKey]);
   const [modelInstance, associatedInstances] = await Promise.all([
     sequelize.models[model.name].findByPk(model[primaryKey], {
@@ -81,7 +82,7 @@ export const handleUpdateMany = async (
               new NotFoundError({
                 detail: `Payload must include an ID of an existing '${modelName}'.`,
                 pointer: `/data/relationships/${pluralize(
-                  modelName.toLowerCase(),
+                  as,
                 )}/data/${index}/id`,
               }),
             ],
@@ -89,7 +90,7 @@ export const handleUpdateMany = async (
     );
   }
 
-  await modelInstance[`set${pluralize(association.details.model)}`](
+  await modelInstance[`set${pluralize(as)}`](
     association.attributes.map((data) => data[primaryKey]),
     {
       transaction,
