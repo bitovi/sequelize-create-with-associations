@@ -28,6 +28,7 @@ export interface UserModel
   name: string;
   age: number;
   skills?: Array<Partial<SkillModel>>;
+  associatedSkills?: Array<Partial<SkillModel>>;
   UserSkill?: { selfGranted: boolean };
   through?: { selfGranted: boolean };
 }

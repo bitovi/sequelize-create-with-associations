@@ -3,7 +3,6 @@ import { NotFoundError } from "../types";
 import type { IAssociationBody, JSONAnyObject } from "../types";
 import { pluralize } from "inflection";
 import { camelCaseToPascalCase } from "../util/camelCaseToPascalCase";
-import { pascalCaseToCamelCase } from "../util/pascalCaseToCamelCase";
 
 export const handleCreateHasOne = async (
   sequelize: Sequelize,
@@ -39,9 +38,7 @@ export const handleCreateHasOne = async (
       throw [
         new NotFoundError({
           detail: `Payload must include an ID of an existing '${modelName}'.`,
-          pointer: `/data/relationships/${
-            as ?? pascalCaseToCamelCase(modelName)
-          }/data/id`,
+          pointer: `/data/relationships/${as}/data/id`,
         }),
       ];
     }
@@ -128,6 +125,7 @@ export const handleCreateMany = async (
   }
 
   const modelName = association.details.model;
+  const addFnName = `add${camelCaseToPascalCase(association.details.as)}`;
 
   const results = await Promise.allSettled(
     association.attributes.map(async (attribute, index) => {
@@ -135,7 +133,7 @@ export const handleCreateMany = async (
 
       if (isCreate) {
         const id = (
-          await sequelize.models[association.details.model].create(
+          await sequelize.models[modelName].create(
             { ...attribute, through: undefined },
             { transaction },
           )
@@ -143,7 +141,7 @@ export const handleCreateMany = async (
           .getDataValue(primaryKey)
           .toString();
 
-        return modelInstance[`add${modelName}`](id, {
+        return modelInstance[addFnName](id, {
           through: attribute.through,
           transaction,
         });
@@ -160,7 +158,7 @@ export const handleCreateMany = async (
         });
       }
 
-      return modelInstance[`add${modelName}`](attribute[primaryKey], {
+      return modelInstance[addFnName](attribute[primaryKey], {
         through: attribute.through,
         transaction,
       });
@@ -195,7 +193,9 @@ export const handleBulkCreateMany = async (
     throw [new Error("Not all models were successfully created")];
   }
 
+  console.log("association details:", JSON.stringify(association.details));
   const modelName = association.details.model;
+  const addFnName = `add${camelCaseToPascalCase(association.details.as)}`;
 
   const results = await Promise.all(
     association.attributes.map(async (attributes, index) => {
@@ -214,7 +214,7 @@ export const handleBulkCreateMany = async (
               .getDataValue(primaryKey)
               .toString();
 
-            return modelInstances[index][`add${modelName}`](id, {
+            return modelInstances[index][addFnName](id, {
               through: attribute.through,
               transaction,
             });
@@ -231,13 +231,10 @@ export const handleBulkCreateMany = async (
             });
           }
 
-          return modelInstances[index][`add${modelName}`](
-            attribute[primaryKey],
-            {
-              through: attribute.through,
-              transaction,
-            },
-          );
+          return modelInstances[index][addFnName](attribute[primaryKey], {
+            through: attribute.through,
+            transaction,
+          });
         }),
       );
     }),

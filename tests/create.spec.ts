@@ -502,7 +502,7 @@ describe("Create", () => {
     );
 
     User.belongsToMany(Skill, {
-      as: "skills",
+      as: "associatedSkills",
       foreignKey: "userId",
       through: UserSkill,
     });
@@ -518,24 +518,24 @@ describe("Create", () => {
     const user = await User.create({
       name: "Justin",
       age: 33,
-      skills: [
+      associatedSkills: [
         { name: "Programming" },
         { name: "Cooking", through: { selfGranted: true } },
       ],
     });
 
     const userWithAssociations = await User.findByPk(user.id, {
-      include: "skills",
+      include: "associatedSkills",
     });
 
     expect(userWithAssociations?.name).toEqual("Justin");
     expect(userWithAssociations?.age).toEqual(33);
-    expect(userWithAssociations?.skills).toHaveLength(2);
+    expect(userWithAssociations?.associatedSkills).toHaveLength(2);
 
-    const programming = userWithAssociations?.skills?.find(
+    const programming = userWithAssociations?.associatedSkills?.find(
       ({ name }) => name === "Programming",
     );
-    const cooking = userWithAssociations?.skills?.find(
+    const cooking = userWithAssociations?.associatedSkills?.find(
       ({ name }) => name === "Cooking",
     );
 
@@ -543,8 +543,9 @@ describe("Create", () => {
     expect(cooking?.UserSkill?.selfGranted).toEqual(true);
 
     const programmingWithUser = await Skill.findByPk(
-      userWithAssociations?.skills?.find(({ name }) => name === "Programming")
-        ?.id,
+      userWithAssociations?.associatedSkills?.find(
+        ({ name }) => name === "Programming",
+      )?.id,
       { include: ["users"] },
     );
 
@@ -555,7 +556,9 @@ describe("Create", () => {
     expect(programmingWithUser?.users?.[0]?.UserSkill?.selfGranted).toBeNull();
 
     const cookingWithUser = await Skill.findByPk(
-      userWithAssociations?.skills?.find(({ name }) => name === "Cooking")?.id,
+      userWithAssociations?.associatedSkills?.find(
+        ({ name }) => name === "Cooking",
+      )?.id,
       { include: ["users"] },
     );
 

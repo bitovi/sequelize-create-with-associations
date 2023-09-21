@@ -19,24 +19,24 @@ import {
 import { UnexpectedValueError } from "./types";
 import type { IAssociation } from "./types";
 
-type AssociationLookup = Record<string, Record<string, IAssociation>>;
+type AssociationLookup = Record<string, IAssociation>;
+type AssociationLookupLookup = Record<string, AssociationLookup>;
 
-let associationsLookup: AssociationLookup;
-
-function calculateAssociationProp(associations) {
-  const result = {};
+function calculateAssociationProp(associations): AssociationLookup {
+  const result: AssociationLookup = {};
 
   Object.keys(associations).forEach((key) => {
-    const association = {};
+    const association: AssociationLookup = {};
 
     if (associations[key].hasOwnProperty("options")) {
-      const { associationType, target, foreignKey, throughModel } =
+      const { associationType, target, foreignKey, throughModel, as } =
         associations[key];
       association[key] = {
         type: associationType,
         key: foreignKey,
         model: target.name,
-        joinTable: throughModel,
+        ...(throughModel ? { joinTable: throughModel } : {}),
+        as,
       };
     }
     result[key] = association[key];
@@ -44,18 +44,15 @@ function calculateAssociationProp(associations) {
 
   return result;
 }
-export function getLookup(sequelize): AssociationLookup {
-  //TODO: Fix associations lookup being static
-  /*  if (!associationsLookup) { */
-  const lookup: any = {};
+export function getLookup(sequelize): AssociationLookupLookup {
+  const lookup: AssociationLookupLookup = {};
   const models = sequelize.models;
   const modelKeys = Object.keys(models);
   modelKeys.forEach((key) => {
     const associations = calculateAssociationProp(models[key].associations);
     lookup[key] = associations;
   });
-  associationsLookup = lookup;
-  return associationsLookup;
+  return lookup;
 }
 
 export const extendSequelize = (SequelizeClass: any) => {
@@ -105,7 +102,7 @@ export const extendSequelize = (SequelizeClass: any) => {
         this.sequelize,
         this,
         externalAssociations,
-        associations as Record<string, IAssociation>,
+        associations,
         attributes,
         transaction,
         modelData?.[modelPrimaryKey],
@@ -171,7 +168,7 @@ export const extendSequelize = (SequelizeClass: any) => {
         this.sequelize,
         this,
         externalAssociations,
-        associations as Record<string, IAssociation>,
+        associations,
         otherAssociationAttributes,
         transaction,
         modelIds,
@@ -240,7 +237,7 @@ export const extendSequelize = (SequelizeClass: any) => {
         this.sequelize,
         this,
         externalAssociations,
-        associations as Record<string, IAssociation>,
+        associations,
         attributes,
         transaction,
         modelId,

@@ -320,7 +320,7 @@ describe("Update", () => {
     );
 
     User.hasMany(Skill, {
-      as: "skills",
+      as: "associatedSkills",
       foreignKey: "userId",
     });
 
@@ -334,7 +334,7 @@ describe("Update", () => {
     const user = await User.create({
       name: "Justin",
       age: 33,
-      skills: [
+      associatedSkills: [
         { name: "Acting" },
         { name: "Cooking" },
         { name: "Programming" },
@@ -357,7 +357,7 @@ describe("Update", () => {
       {
         name: "Kevin",
         age: 32,
-        skills: [
+        associatedSkills: [
           { id: cooking?.id },
           { id: programming?.id },
           { id: running?.id },
@@ -366,18 +366,18 @@ describe("Update", () => {
       { where: { id: user.id } },
     );
 
-    const updatedUser = await User.findByPk(user.id, { include: ["skills"] });
-    const skills = await Skill.findAll();
+    const updatedUser = await User.findByPk(user.id, {
+      include: ["associatedSkills"],
+    });
+    const associatedSkills = await Skill.findAll();
 
     expect(updatedUser).toEqual(
       expect.objectContaining({ name: "Kevin", age: 32 }),
     );
-    expect(updatedUser?.skills?.map((skill) => skill.name).sort()).toEqual([
-      "Cooking",
-      "Programming",
-      "Running",
-    ]);
-    expect(skills).toHaveLength(4);
+    expect(
+      updatedUser?.associatedSkills?.map((skill) => skill.name).sort(),
+    ).toEqual(["Cooking", "Programming", "Running"]);
+    expect(associatedSkills).toHaveLength(4);
   });
 
   it("Should update records associated through hasMany - inverse", async () => {

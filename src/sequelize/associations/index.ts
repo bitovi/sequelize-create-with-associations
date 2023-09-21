@@ -16,7 +16,11 @@ import {
 export const getValidAttributesAndAssociations = (
   attributes: Attributes<any> | Array<Attributes<any>>,
   associations: Record<string, IAssociation> | undefined,
-) => {
+): {
+  externalAssociations: string[];
+  otherAssociationAttributes: JSONAnyObject;
+  currentModelAttributes: Attributes<any>;
+} => {
   const externalAssociations: string[] = [];
   let currentModelAttributes = attributes;
   const otherAssociationAttributes: JSONAnyObject = {};
@@ -67,10 +71,7 @@ export const handleCreateAssociations = async (
   primaryKey = "id",
 ): Promise<void> => {
   for (const association of validAssociations) {
-    const associationDetails = {
-      ...associations[association],
-      as: association,
-    };
+    const associationDetails = associations[association];
     const associationAttribute = attributes[association];
 
     switch (associationDetails.type) {

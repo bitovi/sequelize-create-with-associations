@@ -307,7 +307,7 @@ describe("Bulk Create", () => {
     );
 
     User.hasMany(Skill, {
-      as: "skills",
+      as: "associatedSkills",
       foreignKey: "userId",
     });
 
@@ -324,34 +324,34 @@ describe("Bulk Create", () => {
       {
         name: "Justin",
         age: 33,
-        skills: [{ name: "Programming" }, { id: cookingId }],
+        associatedSkills: [{ name: "Programming" }, { id: cookingId }],
       },
       {
         name: "Kevin",
         age: 32,
-        skills: [{ name: "Running" }],
+        associatedSkills: [{ name: "Running" }],
       },
     ]);
 
     const usersWithAssociations = await User.findAll({
       where: { id: { [Op.in]: users.map((user) => user.id) } },
-      include: "skills",
+      include: "associatedSkills",
     });
 
     expect(usersWithAssociations[0].name).toEqual("Justin");
     expect(usersWithAssociations[0].age).toEqual(33);
-    expect(usersWithAssociations[0].skills).toHaveLength(2);
+    expect(usersWithAssociations[0].associatedSkills).toHaveLength(2);
     expect(usersWithAssociations[1].name).toEqual("Kevin");
     expect(usersWithAssociations[1].age).toEqual(32);
-    expect(usersWithAssociations[1].skills).toHaveLength(1);
+    expect(usersWithAssociations[1].associatedSkills).toHaveLength(1);
 
-    const programming = usersWithAssociations[0].skills?.find(
+    const programming = usersWithAssociations[0].associatedSkills?.find(
       ({ name }) => name === "Programming",
     );
-    const cooking = usersWithAssociations[0].skills?.find(
+    const cooking = usersWithAssociations[0].associatedSkills?.find(
       ({ name }) => name === "Cooking",
     );
-    const running = usersWithAssociations[1].skills?.find(
+    const running = usersWithAssociations[1].associatedSkills?.find(
       ({ name }) => name === "Running",
     );
 
@@ -360,7 +360,7 @@ describe("Bulk Create", () => {
     expect(running).toBeTruthy();
 
     const programmingWithUser = await Skill.findByPk(
-      usersWithAssociations[0].skills?.find(
+      usersWithAssociations[0].associatedSkills?.find(
         ({ name }) => name === "Programming",
       )?.id,
       { include: ["user"] },
@@ -372,8 +372,9 @@ describe("Bulk Create", () => {
     expect(programmingWithUser?.user?.age).toEqual(33);
 
     const cookingWithUsers = await Skill.findByPk(
-      usersWithAssociations[0].skills?.find(({ name }) => name === "Cooking")
-        ?.id,
+      usersWithAssociations[0].associatedSkills?.find(
+        ({ name }) => name === "Cooking",
+      )?.id,
       { include: ["user"] },
     );
 
@@ -383,8 +384,9 @@ describe("Bulk Create", () => {
     expect(cookingWithUsers?.user?.age).toEqual(33);
 
     const runningWithUser = await Skill.findByPk(
-      usersWithAssociations[1].skills?.find(({ name }) => name === "Running")
-        ?.id,
+      usersWithAssociations[1].associatedSkills?.find(
+        ({ name }) => name === "Running",
+      )?.id,
       { include: ["user"] },
     );
 
