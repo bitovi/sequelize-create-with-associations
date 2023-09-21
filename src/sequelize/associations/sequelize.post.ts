@@ -1,7 +1,7 @@
 import type { Sequelize, Transaction } from "sequelize";
 import { NotFoundError } from "../types";
 import type { IAssociationBody, JSONAnyObject } from "../types";
-import { pluralize } from "inflection";
+import { classify, pluralize } from "inflection";
 import { camelCaseToPascalCase } from "../util/camelCaseToPascalCase";
 import { pascalCaseToCamelCase } from "../util/pascalCaseToCamelCase";
 
@@ -128,6 +128,7 @@ export const handleCreateMany = async (
   }
 
   const modelName = association.details.model;
+  const addFnName = `add${classify(association.details.as)}`;
 
   const results = await Promise.allSettled(
     association.attributes.map(async (attribute, index) => {
@@ -135,7 +136,7 @@ export const handleCreateMany = async (
 
       if (isCreate) {
         const id = (
-          await sequelize.models[association.details.model].create(
+          await sequelize.models[modelName].create(
             { ...attribute, through: undefined },
             { transaction },
           )
@@ -143,7 +144,7 @@ export const handleCreateMany = async (
           .getDataValue(primaryKey)
           .toString();
 
-        return modelInstance[`add${modelName}`](id, {
+        return modelInstance[addFnName](id, {
           through: attribute.through,
           transaction,
         });
@@ -160,7 +161,7 @@ export const handleCreateMany = async (
         });
       }
 
-      return modelInstance[`add${modelName}`](attribute[primaryKey], {
+      return modelInstance[addFnName](attribute[primaryKey], {
         through: attribute.through,
         transaction,
       });
