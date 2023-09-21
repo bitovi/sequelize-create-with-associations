@@ -366,17 +366,17 @@ describe("Update", () => {
       { where: { id: user.id } },
     );
 
-    const updatedUser = await User.findByPk(user.id, { include: ["associatedSkills"] });
+    const updatedUser = await User.findByPk(user.id, {
+      include: ["associatedSkills"],
+    });
     const associatedSkills = await Skill.findAll();
 
     expect(updatedUser).toEqual(
       expect.objectContaining({ name: "Kevin", age: 32 }),
     );
-    expect(updatedUser?.associatedSkills?.map((skill) => skill.name).sort()).toEqual([
-      "Cooking",
-      "Programming",
-      "Running",
-    ]);
+    expect(
+      updatedUser?.associatedSkills?.map((skill) => skill.name).sort(),
+    ).toEqual(["Cooking", "Programming", "Running"]);
     expect(associatedSkills).toHaveLength(4);
   });
 
