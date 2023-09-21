@@ -372,8 +372,9 @@ describe("Bulk Create", () => {
     expect(programmingWithUser?.user?.age).toEqual(33);
 
     const cookingWithUsers = await Skill.findByPk(
-      usersWithAssociations[0].associatedSkills?.find(({ name }) => name === "Cooking")
-        ?.id,
+      usersWithAssociations[0].associatedSkills?.find(
+        ({ name }) => name === "Cooking",
+      )?.id,
       { include: ["user"] },
     );
 
@@ -383,8 +384,9 @@ describe("Bulk Create", () => {
     expect(cookingWithUsers?.user?.age).toEqual(33);
 
     const runningWithUser = await Skill.findByPk(
-      usersWithAssociations[1].associatedSkills?.find(({ name }) => name === "Running")
-        ?.id,
+      usersWithAssociations[1].associatedSkills?.find(
+        ({ name }) => name === "Running",
+      )?.id,
       { include: ["user"] },
     );
 
