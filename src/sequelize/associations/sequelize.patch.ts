@@ -5,7 +5,6 @@ import type { Sequelize, Transaction } from "sequelize";
 import { NotFoundError } from "../types";
 import type { IAssociationBody } from "../types";
 import { camelCaseToPascalCase } from "../util/camelCaseToPascalCase";
-import { pascalCaseToCamelCase } from "../util/pascalCaseToCamelCase";
 
 export const handleUpdateOne = async (
   sequelize: Sequelize,
@@ -35,9 +34,7 @@ export const handleUpdateOne = async (
     throw [
       new NotFoundError({
         detail: `Payload must include an ID of an existing '${modelName}'.`,
-        pointer: `/data/relationships/${
-          as ?? pascalCaseToCamelCase(modelName)
-        }/data/id`,
+        pointer: `/data/relationships/${as}/data/id`,
       }),
     ];
   }
@@ -86,7 +83,7 @@ export const handleUpdateMany = async (
               new NotFoundError({
                 detail: `Payload must include an ID of an existing '${modelName}'.`,
                 pointer: `/data/relationships/${pluralize(
-                  as ?? pascalCaseToCamelCase(modelName),
+                  as,
                 )}/data/${index}/id`,
               }),
             ],
