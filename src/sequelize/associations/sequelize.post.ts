@@ -1,9 +1,10 @@
 import type { Sequelize, Transaction } from "sequelize";
 import { NotFoundError } from "../types";
 import type { IAssociationBody, JSONAnyObject } from "../types";
-import { classify, pluralize } from "inflection";
+import { pluralize } from "inflection";
 import { camelCaseToPascalCase } from "../util/camelCaseToPascalCase";
 import { pascalCaseToCamelCase } from "../util/pascalCaseToCamelCase";
+import { addTicks } from "sequelize/types/utils";
 
 export const handleCreateHasOne = async (
   sequelize: Sequelize,
@@ -128,7 +129,7 @@ export const handleCreateMany = async (
   }
 
   const modelName = association.details.model;
-  const addFnName = `add${classify(association.details.as)}`;
+  const addFnName = `add${camelCaseToPascalCase(association.details.as)}`;
 
   const results = await Promise.allSettled(
     association.attributes.map(async (attribute, index) => {
@@ -196,7 +197,9 @@ export const handleBulkCreateMany = async (
     throw [new Error("Not all models were successfully created")];
   }
 
+  console.log("association details:", JSON.stringify(association.details));
   const modelName = association.details.model;
+  const addFnName = `add${camelCaseToPascalCase(association.details.as)}`;
 
   const results = await Promise.all(
     association.attributes.map(async (attributes, index) => {
@@ -215,7 +218,7 @@ export const handleBulkCreateMany = async (
               .getDataValue(primaryKey)
               .toString();
 
-            return modelInstances[index][`add${modelName}`](id, {
+            return modelInstances[index][addFnName](id, {
               through: attribute.through,
               transaction,
             });
@@ -232,13 +235,10 @@ export const handleBulkCreateMany = async (
             });
           }
 
-          return modelInstances[index][`add${modelName}`](
-            attribute[primaryKey],
-            {
-              through: attribute.through,
-              transaction,
-            },
-          );
+          return modelInstances[index][addFnName](attribute[primaryKey], {
+            through: attribute.through,
+            transaction,
+          });
         }),
       );
     }),

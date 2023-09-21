@@ -77,9 +77,12 @@ describe("Extended", () => {
             type: "HasOne",
             key: "userId",
             model: "Skill",
+            as: "skill",
           },
         },
-        Skill: { user: { type: "BelongsTo", key: "userId", model: "User" } },
+        Skill: {
+          user: { type: "BelongsTo", key: "userId", model: "User", as: "user" },
+        },
       });
     });
 
@@ -123,8 +126,17 @@ describe("Extended", () => {
       });
 
       expect(getLookup(sequelize)).toEqual({
-        User: { skills: { type: "HasMany", key: "userId", model: "Skill" } },
-        Skill: { user: { type: "BelongsTo", key: "userId", model: "User" } },
+        User: {
+          skills: {
+            type: "HasMany",
+            key: "userId",
+            model: "Skill",
+            as: "skills",
+          },
+        },
+        Skill: {
+          user: { type: "BelongsTo", key: "userId", model: "User", as: "user" },
+        },
       });
     });
 
@@ -190,6 +202,7 @@ describe("Extended", () => {
             key: "skillId",
             model: "User",
             type: "BelongsToMany",
+            as: "users",
           },
         },
         User: {
@@ -198,6 +211,7 @@ describe("Extended", () => {
             key: "userId",
             model: "Skill",
             type: "BelongsToMany",
+            as: "skills",
           },
         },
         UserSkill: {},
