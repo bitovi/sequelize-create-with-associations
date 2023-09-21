@@ -4,7 +4,6 @@ import type { IAssociationBody, JSONAnyObject } from "../types";
 import { pluralize } from "inflection";
 import { camelCaseToPascalCase } from "../util/camelCaseToPascalCase";
 import { pascalCaseToCamelCase } from "../util/pascalCaseToCamelCase";
-import { addTicks } from "sequelize/types/utils";
 
 export const handleCreateHasOne = async (
   sequelize: Sequelize,
