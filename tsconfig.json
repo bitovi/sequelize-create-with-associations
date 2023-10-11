@@ -3,6 +3,7 @@
     "outDir": "dist",
     "module": "CommonJS",
     "target": "ES2019",
+    "declaration": true,
     "esModuleInterop": true,
     "strictNullChecks": true,
     "lib": ["ESNext"]

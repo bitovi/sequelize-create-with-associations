@@ -113,12 +113,9 @@ export const handleCreateMany = async (
   transaction: Transaction,
   primaryKey = "id",
 ): Promise<void> => {
-  const modelInstance = await sequelize.models[model.name].findByPk(
-    model[primaryKey],
-    {
-      transaction,
-    },
-  );
+  const modelInstance = await sequelize.models[model.name].findByPk(model.id, {
+    transaction,
+  });
 
   if (!modelInstance) {
     throw [new Error("Unable to find created model")];
@@ -148,7 +145,9 @@ export const handleCreateMany = async (
       }
 
       if (
-        !(await sequelize.models[modelName].findByPk(attribute[primaryKey]))
+        !(await sequelize.models[modelName].findByPk(attribute[primaryKey], {
+          transaction,
+        }))
       ) {
         throw new NotFoundError({
           detail: `Payload must include an ID of an existing '${modelName}'.`,
@@ -193,7 +192,6 @@ export const handleBulkCreateMany = async (
     throw [new Error("Not all models were successfully created")];
   }
 
-  console.log("association details:", JSON.stringify(association.details));
   const modelName = association.details.model;
   const addFnName = `add${camelCaseToPascalCase(association.details.as)}`;
 
