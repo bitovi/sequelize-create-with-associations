@@ -458,7 +458,11 @@ describe("Update", () => {
     const User = sequelize.define<UserModel>(
       "User",
       {
-        nonDefaultUserId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        nonDefaultUserId: {
+          type: DataTypes.INTEGER,
+          primaryKey: true,
+          autoIncrement: true,
+        },
         name: DataTypes.STRING,
         age: DataTypes.INTEGER,
       },
@@ -468,7 +472,11 @@ describe("Update", () => {
     const Skill = sequelize.define<SkillModel>(
       "Skill",
       {
-        nonDefaultSkillId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        nonDefaultSkillId: {
+          type: DataTypes.INTEGER,
+          primaryKey: true,
+          autoIncrement: true,
+        },
         name: DataTypes.STRING,
         userId: DataTypes.INTEGER,
       },
