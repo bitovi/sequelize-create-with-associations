@@ -68,7 +68,6 @@ export const handleCreateAssociations = async (
   attributes: Attributes<any>,
   transaction: Transaction,
   modelId: string,
-  primaryKey = "id",
 ): Promise<void> => {
   for (const association of validAssociations) {
     const associationDetails = associations[association];
@@ -85,7 +84,6 @@ export const handleCreateAssociations = async (
           },
           { name: model.name, id: modelId },
           transaction,
-          primaryKey,
         );
         break;
       case "BelongsToMany":
@@ -98,7 +96,6 @@ export const handleCreateAssociations = async (
           },
           { name: model.name, id: modelId },
           transaction,
-          primaryKey,
         );
         break;
       default:
@@ -115,7 +112,6 @@ export const handleBulkCreateAssociations = async (
   attributes: JSONAnyObject,
   transaction: Transaction,
   modelIds: string[],
-  primaryKey = "id",
 ): Promise<void> => {
   for (const association of validAssociations) {
     const associationDetails = associations[association];
@@ -132,7 +128,6 @@ export const handleBulkCreateAssociations = async (
           },
           { name: model.name, id: modelIds },
           transaction,
-          primaryKey,
         );
         break;
       case "BelongsToMany":
@@ -145,7 +140,6 @@ export const handleBulkCreateAssociations = async (
           },
           { name: model.name, id: modelIds },
           transaction,
-          primaryKey,
         );
         break;
       default:
@@ -162,7 +156,6 @@ export const handleUpdateAssociations = async (
   attributes: Attributes<any>,
   transaction: Transaction,
   modelId: string,
-  primaryKey = "id",
 ): Promise<void> => {
   for (const association of validAssociations) {
     const associationDetails = associations[association];
@@ -182,7 +175,6 @@ export const handleUpdateAssociations = async (
             id: modelId,
           },
           transaction,
-          primaryKey,
         );
         break;
       case "HasMany":
@@ -198,7 +190,6 @@ export const handleUpdateAssociations = async (
             id: modelId,
           },
           transaction,
-          primaryKey,
         );
         break;
       default:

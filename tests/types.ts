@@ -11,6 +11,7 @@ export interface SkillModel
     InferCreationAttributes<SkillModel>
   > {
   id?: CreationOptional<number>;
+  nonDefaultSkillId?: CreationOptional<number>;
   name: string;
   userId?: number;
   user?: Partial<UserModel>;
@@ -24,7 +25,8 @@ export interface UserModel
     InferAttributes<UserModel>,
     InferCreationAttributes<UserModel>
   > {
-  id: CreationOptional<number>;
+  id?: CreationOptional<number>;
+  nonDefaultUserId?: CreationOptional<number>;
   name: string;
   age: number;
   skills?: Array<Partial<SkillModel>>;
@@ -38,7 +40,8 @@ export interface SingleSkillUserModel
     InferAttributes<SingleSkillUserModel>,
     InferCreationAttributes<SingleSkillUserModel>
   > {
-  id: CreationOptional<number>;
+  id?: CreationOptional<number>;
+  nonDefaultUserId?: CreationOptional<number>;
   name: string;
   age: number;
   skill?: Partial<SkillModel> | null;
@@ -49,8 +52,19 @@ export interface UserSkillModel
     InferAttributes<UserSkillModel>,
     InferCreationAttributes<UserSkillModel>
   > {
-  id: CreationOptional<number>;
+  id?: CreationOptional<number>;
+  nonDefaultUserSkillId?: CreationOptional<number>;
   selfGranted: boolean;
   userId: number;
   skillId: number;
+}
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace jest {
+    // eslint-disable-next-line
+    interface Matchers <R, T = {}> {
+      toEqualErrors<E = any>(expected: E): R;
+    }
+  }
 }

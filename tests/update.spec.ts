@@ -126,6 +126,80 @@ describe("Update", () => {
     expect(await Skill.count()).toEqual(2);
   });
 
+  it("Should update records associated through hasOne - non-default Id", async () => {
+    const User = sequelize.define<SingleSkillUserModel>(
+      "User",
+      {
+        nonDefaultUserId: {
+          type: DataTypes.INTEGER,
+          primaryKey: true,
+          autoIncrement: true,
+        },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        nonDefaultSkillId: {
+          type: DataTypes.INTEGER,
+          primaryKey: true,
+          autoIncrement: true,
+        },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasOne(Skill, {
+      as: "skill",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    const justin = await User.create({
+      name: "Justin",
+      age: 33,
+      skill: { name: "Programming" },
+    });
+
+    const cooking = await Skill.create({
+      nonDefaultSkillId: 10,
+      name: "Cooking",
+    });
+
+    const [updatedCount] = await User.update(
+      { age: 32, skill: { nonDefaultSkillId: cooking.nonDefaultSkillId } },
+      { where: { nonDefaultUserId: justin.nonDefaultUserId } },
+    );
+
+    expect(updatedCount).toEqual(1);
+
+    const updatedUser = await User.findByPk(justin.nonDefaultUserId, {
+      include: ["skill"],
+    });
+
+    expect(updatedUser).toEqual(
+      expect.objectContaining({
+        name: "Justin",
+        age: 32,
+        skill: expect.objectContaining({ name: "Cooking" }),
+      }),
+    );
+
+    expect(await Skill.count()).toEqual(2);
+  });
+
   it("Should update records associated through hasOne - inverse", async () => {
     const User = sequelize.define<SingleSkillUserModel>(
       "User",
@@ -367,6 +441,88 @@ describe("Update", () => {
     );
 
     const updatedUser = await User.findByPk(user.id, {
+      include: ["associatedSkills"],
+    });
+    const associatedSkills = await Skill.findAll();
+
+    expect(updatedUser).toEqual(
+      expect.objectContaining({ name: "Kevin", age: 32 }),
+    );
+    expect(
+      updatedUser?.associatedSkills?.map((skill) => skill.name).sort(),
+    ).toEqual(["Cooking", "Programming", "Running"]);
+    expect(associatedSkills).toHaveLength(4);
+  });
+
+  it("Should update records associated through hasMany - non-default Id", async () => {
+    const User = sequelize.define<UserModel>(
+      "User",
+      {
+        nonDefaultUserId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        nonDefaultSkillId: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasMany(Skill, {
+      as: "associatedSkills",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    const user = await User.create({
+      name: "Justin",
+      age: 33,
+      associatedSkills: [
+        { name: "Acting" },
+        { name: "Cooking" },
+        { name: "Programming" },
+      ],
+    });
+
+    const [cooking, programming, running] = await Promise.all([
+      Skill.findOne({
+        where: { name: "Cooking" },
+      }),
+      Skill.findOne({
+        where: { name: "Programming" },
+      }),
+      Skill.create({
+        name: "Running",
+      }),
+    ]);
+
+    await User.update(
+      {
+        name: "Kevin",
+        age: 32,
+        associatedSkills: [
+          { nonDefaultSkillId: cooking?.nonDefaultSkillId },
+          { nonDefaultSkillId: programming?.nonDefaultSkillId },
+          { nonDefaultSkillId: running?.nonDefaultSkillId },
+        ],
+      },
+      { where: { nonDefaultUserId: user.nonDefaultUserId } },
+    );
+
+    const updatedUser = await User.findByPk(user.nonDefaultUserId, {
       include: ["associatedSkills"],
     });
     const associatedSkills = await Skill.findAll();

@@ -106,7 +106,6 @@ export const extendSequelize = (SequelizeClass: any) => {
         attributes,
         transaction,
         modelData?.[modelPrimaryKey],
-        modelPrimaryKey,
       );
 
       !options?.transaction && (await transaction.commit());
@@ -172,7 +171,6 @@ export const extendSequelize = (SequelizeClass: any) => {
         otherAssociationAttributes,
         transaction,
         modelIds,
-        modelPrimaryKey,
       );
 
       !options?.transaction && (await transaction.commit());
@@ -241,7 +239,6 @@ export const extendSequelize = (SequelizeClass: any) => {
         attributes,
         transaction,
         modelId,
-        modelPrimaryKey,
       );
 
       !ops?.transaction && (await transaction.commit());
