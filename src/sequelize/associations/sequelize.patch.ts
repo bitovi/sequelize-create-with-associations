@@ -11,16 +11,19 @@ export const handleUpdateOne = async (
   association: IAssociationBody<Array<Record<string, any>>>,
   model: { name: string; id: string },
   transaction: Transaction,
-  primaryKey = "id",
 ): Promise<void> => {
-  const { model: modelName, as } = association.details;
-  const associatedId = association.attributes?.[primaryKey] || null;
+  const { model: associatedModelName, as } = association.details;
+  const associatedModelPrimaryKey =
+    sequelize.models[associatedModelName].primaryKeyAttribute;
+  const associatedId =
+    association.attributes?.[associatedModelPrimaryKey] || null;
+
   const [modelInstance, associatedInstance] = await Promise.all([
-    sequelize.models[model.name].findByPk(model[primaryKey], {
+    sequelize.models[model.name].findByPk(model.id, {
       transaction,
     }),
     associatedId
-      ? sequelize.models[modelName].findByPk(associatedId, {
+      ? sequelize.models[associatedModelName].findByPk(associatedId, {
           transaction,
         })
       : null,
@@ -33,13 +36,13 @@ export const handleUpdateOne = async (
   if (associatedId && !associatedInstance) {
     throw [
       new NotFoundError({
-        detail: `Payload must include an ID of an existing '${modelName}'.`,
+        detail: `Payload must include an ID of an existing '${associatedModelName}'.`,
         pointer: `/data/relationships/${as}/data/id`,
       }),
     ];
   }
 
-  const setter = `set${as ? camelCaseToPascalCase(as) : modelName}`;
+  const setter = `set${as ? camelCaseToPascalCase(as) : associatedModelName}`;
   await modelInstance[setter](associatedId, {
     transaction,
   });
@@ -50,17 +53,20 @@ export const handleUpdateMany = async (
   association: IAssociationBody<Array<Record<string, any>>>,
   model: { name: string; id: string },
   transaction: Transaction,
-  primaryKey = "id",
 ): Promise<void> => {
-  const { model: modelName, as } = association.details;
-  const associatedIds = association.attributes.map((data) => data[primaryKey]);
+  const { model: associatedModelName, as } = association.details;
+  const associatedModelPrimaryKey =
+    sequelize.models[associatedModelName].primaryKeyAttribute;
+  const associatedIds = association.attributes.map(
+    (data) => data[associatedModelPrimaryKey],
+  );
   const [modelInstance, associatedInstances] = await Promise.all([
-    sequelize.models[model.name].findByPk(model[primaryKey], {
+    sequelize.models[model.name].findByPk(model.id, {
       transaction,
     }),
     associatedIds.length
-      ? sequelize.models[modelName].findAll({
-          where: { id: { [Op.in]: associatedIds } },
+      ? sequelize.models[associatedModelName].findAll({
+          where: { [associatedModelPrimaryKey]: { [Op.in]: associatedIds } },
           transaction,
         })
       : [],
@@ -75,13 +81,14 @@ export const handleUpdateMany = async (
     throw associatedIds.reduce(
       (acc, associatedId, index) =>
         associatedInstances.some(
-          ({ dataValues: { id } }) => id === associatedId,
+          ({ dataValues: { [associatedModelPrimaryKey]: id } }) =>
+            id === associatedId,
         )
           ? acc
           : [
               ...acc,
               new NotFoundError({
-                detail: `Payload must include an ID of an existing '${modelName}'.`,
+                detail: `Payload must include an ID of an existing '${associatedModelName}'.`,
                 pointer: `/data/relationships/${pluralize(
                   as,
                 )}/data/${index}/id`,
@@ -91,9 +98,11 @@ export const handleUpdateMany = async (
     );
   }
 
-  const setter = `set${pluralize(as ? camelCaseToPascalCase(as) : modelName)}`;
+  const setter = `set${pluralize(
+    as ? camelCaseToPascalCase(as) : associatedModelName,
+  )}`;
   await modelInstance[setter](
-    association.attributes.map((data) => data[primaryKey]),
+    association.attributes.map((data) => data[associatedModelPrimaryKey]),
     {
       transaction,
     },

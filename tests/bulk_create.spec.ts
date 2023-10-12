@@ -2,8 +2,8 @@ import { Sequelize, DataTypes, Op } from "sequelize";
 import * as dotenv from "dotenv";
 import { extendSequelize } from "../src/sequelize/extended";
 import type {
-  SingleSkillUserModel,
   SkillModel,
+  SingleSkillUserModel,
   UserModel,
   UserSkillModel,
 } from "./types";
@@ -32,7 +32,7 @@ describe("Bulk Create", () => {
   });
 
   it("Should create records with no associations", async () => {
-    const User = sequelize.define<UserModel>(
+    const User = sequelize.define<UserModel & Required<Pick<UserModel, "id">>>(
       "User",
       {
         id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -70,7 +70,9 @@ describe("Bulk Create", () => {
   });
 
   it("Should create records associated through hasOne", async () => {
-    const User = sequelize.define<SingleSkillUserModel>(
+    const User = sequelize.define<
+      SingleSkillUserModel & Required<Pick<SingleSkillUserModel, "id">>
+    >(
       "User",
       {
         id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -145,6 +147,110 @@ describe("Bulk Create", () => {
     });
 
     expect(cooking?.user?.id).toEqual(users[1].id);
+    expect(cooking?.user?.name).toEqual("Kevin");
+    expect(cooking?.user?.age).toEqual(32);
+  });
+
+  it("Should create records associated through hasOne - non-default Id", async () => {
+    const User = sequelize.define<
+      SingleSkillUserModel &
+        Required<Pick<SingleSkillUserModel, "nonDefaultUserId">>
+    >(
+      "User",
+      {
+        nonDefaultUserId: {
+          type: DataTypes.INTEGER,
+          primaryKey: true,
+          autoIncrement: true,
+        },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<
+      SkillModel & Required<Pick<SkillModel, "nonDefaultSkillId">>
+    >(
+      "Skill",
+      {
+        nonDefaultSkillId: {
+          type: DataTypes.INTEGER,
+          primaryKey: true,
+          autoIncrement: true,
+        },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasOne(Skill, {
+      as: "skill",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    const { nonDefaultSkillId: cookingId } = await Skill.create({
+      name: "Cooking",
+    });
+
+    const users = await User.bulkCreate([
+      {
+        name: "Justin",
+        age: 33,
+        skill: { name: "Programming" },
+      },
+      {
+        name: "Kevin",
+        age: 32,
+        skill: { nonDefaultSkillId: cookingId },
+      },
+    ]);
+
+    const usersWithAssociations = await User.findAll({
+      where: {
+        nonDefaultUserId: {
+          [Op.in]: users.map((user) => user.nonDefaultUserId),
+        },
+      },
+      include: ["skill"],
+    });
+
+    expect(usersWithAssociations[0].name).toEqual("Justin");
+    expect(usersWithAssociations[0].age).toEqual(33);
+    expect(usersWithAssociations[0].skill?.name).toEqual("Programming");
+    expect(usersWithAssociations[1].name).toEqual("Kevin");
+    expect(usersWithAssociations[1].age).toEqual(32);
+    expect(usersWithAssociations[1].skill?.name).toEqual("Cooking");
+
+    const programming = await Skill.findByPk(
+      usersWithAssociations[0].skill?.nonDefaultSkillId,
+      {
+        include: ["user"],
+      },
+    );
+
+    expect(programming?.user?.nonDefaultUserId).toEqual(
+      users[0].nonDefaultUserId,
+    );
+    expect(programming?.user?.name).toEqual("Justin");
+    expect(programming?.user?.age).toEqual(33);
+
+    const cooking = await Skill.findByPk(
+      usersWithAssociations[1].skill?.nonDefaultSkillId,
+      {
+        include: ["user"],
+      },
+    );
+
+    expect(cooking?.user?.nonDefaultUserId).toEqual(users[1].nonDefaultUserId);
     expect(cooking?.user?.name).toEqual("Kevin");
     expect(cooking?.user?.age).toEqual(32);
   });
@@ -286,7 +392,7 @@ describe("Bulk Create", () => {
   });
 
   it("Should create records associated through hasMany", async () => {
-    const User = sequelize.define<UserModel>(
+    const User = sequelize.define<UserModel & Required<Pick<UserModel, "id">>>(
       "User",
       {
         id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -392,6 +498,141 @@ describe("Bulk Create", () => {
 
     expect(runningWithUser?.name).toEqual("Running");
     expect(runningWithUser?.user?.id).toEqual(users[1].id);
+    expect(runningWithUser?.user?.name).toEqual("Kevin");
+    expect(runningWithUser?.user?.age).toEqual(32);
+  });
+
+  it("Should create records associated through hasMany - non-default Id", async () => {
+    const User = sequelize.define<
+      UserModel & Required<Pick<UserModel, "nonDefaultUserId">>
+    >(
+      "User",
+      {
+        nonDefaultUserId: {
+          type: DataTypes.INTEGER,
+          primaryKey: true,
+          autoIncrement: true,
+        },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        nonDefaultSkillId: {
+          type: DataTypes.INTEGER,
+          primaryKey: true,
+          autoIncrement: true,
+        },
+        name: DataTypes.STRING,
+        userId: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    User.hasMany(Skill, {
+      as: "associatedSkills",
+      foreignKey: "userId",
+    });
+
+    Skill.belongsTo(User, {
+      as: "user",
+      foreignKey: "userId",
+    });
+
+    await sequelize.sync();
+
+    const cookingId = (await Skill.create({ name: "Cooking" }))
+      .nonDefaultSkillId;
+
+    const users = await User.bulkCreate([
+      {
+        name: "Justin",
+        age: 33,
+        associatedSkills: [
+          { name: "Programming" },
+          { nonDefaultSkillId: cookingId },
+        ],
+      },
+      {
+        name: "Kevin",
+        age: 32,
+        associatedSkills: [{ name: "Running" }],
+      },
+    ]);
+
+    const usersWithAssociations = await User.findAll({
+      where: {
+        nonDefaultUserId: {
+          [Op.in]: users.map((user) => user.nonDefaultUserId),
+        },
+      },
+      include: "associatedSkills",
+    });
+
+    expect(usersWithAssociations[0].name).toEqual("Justin");
+    expect(usersWithAssociations[0].age).toEqual(33);
+    expect(usersWithAssociations[0].associatedSkills).toHaveLength(2);
+    expect(usersWithAssociations[1].name).toEqual("Kevin");
+    expect(usersWithAssociations[1].age).toEqual(32);
+    expect(usersWithAssociations[1].associatedSkills).toHaveLength(1);
+
+    const programming = usersWithAssociations[0].associatedSkills?.find(
+      ({ name }) => name === "Programming",
+    );
+    const cooking = usersWithAssociations[0].associatedSkills?.find(
+      ({ name }) => name === "Cooking",
+    );
+    const running = usersWithAssociations[1].associatedSkills?.find(
+      ({ name }) => name === "Running",
+    );
+
+    expect(programming).toBeTruthy();
+    expect(cooking).toBeTruthy();
+    expect(running).toBeTruthy();
+
+    const programmingWithUser = await Skill.findByPk(
+      usersWithAssociations[0].associatedSkills?.find(
+        ({ name }) => name === "Programming",
+      )?.nonDefaultSkillId,
+      { include: ["user"] },
+    );
+
+    expect(programmingWithUser?.name).toEqual("Programming");
+    expect(programmingWithUser?.user?.nonDefaultUserId).toEqual(
+      users[0].nonDefaultUserId,
+    );
+    expect(programmingWithUser?.user?.name).toEqual("Justin");
+    expect(programmingWithUser?.user?.age).toEqual(33);
+
+    const cookingWithUsers = await Skill.findByPk(
+      usersWithAssociations[0].associatedSkills?.find(
+        ({ name }) => name === "Cooking",
+      )?.nonDefaultSkillId,
+      { include: ["user"] },
+    );
+
+    expect(cookingWithUsers?.name).toEqual("Cooking");
+    expect(cookingWithUsers?.user?.nonDefaultUserId).toEqual(
+      users[0].nonDefaultUserId,
+    );
+    expect(cookingWithUsers?.user?.name).toEqual("Justin");
+    expect(cookingWithUsers?.user?.age).toEqual(33);
+
+    const runningWithUser = await Skill.findByPk(
+      usersWithAssociations[1].associatedSkills?.find(
+        ({ name }) => name === "Running",
+      )?.nonDefaultSkillId,
+      { include: ["user"] },
+    );
+
+    expect(runningWithUser?.name).toEqual("Running");
+    expect(runningWithUser?.user?.nonDefaultUserId).toEqual(
+      users[1].nonDefaultUserId,
+    );
     expect(runningWithUser?.user?.name).toEqual("Kevin");
     expect(runningWithUser?.user?.age).toEqual(32);
   });
@@ -553,7 +794,7 @@ describe("Bulk Create", () => {
   });
 
   it("Should create table and records associated through belongsToMany", async () => {
-    const User = sequelize.define<UserModel>(
+    const User = sequelize.define<UserModel & Required<Pick<UserModel, "id">>>(
       "User",
       {
         id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
