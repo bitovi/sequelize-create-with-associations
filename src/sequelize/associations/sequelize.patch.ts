@@ -12,11 +12,14 @@ export const handleUpdateOne = async (
   model: { name: string; id: string },
   transaction: Transaction,
 ): Promise<void> => {
-  const { model: associatedModelName, as } = association.details;
-  const associatedModelPrimaryKey =
-    sequelize.models[associatedModelName].primaryKeyAttribute;
+  const { model: associatedModelName, as, targetKey } = association.details;
+  const associatedModelIdAttribute = sequelize.models[
+    associatedModelName
+  ].getAttributes()[targetKey]?.unique
+    ? targetKey
+    : sequelize.models[associatedModelName].primaryKeyAttribute;
   const associatedId =
-    association.attributes?.[associatedModelPrimaryKey] || null;
+    association.attributes?.[associatedModelIdAttribute] || null;
 
   const [modelInstance, associatedInstance] = await Promise.all([
     sequelize.models[model.name].findByPk(model.id, {
@@ -54,11 +57,14 @@ export const handleUpdateMany = async (
   model: { name: string; id: string },
   transaction: Transaction,
 ): Promise<void> => {
-  const { model: associatedModelName, as } = association.details;
-  const associatedModelPrimaryKey =
-    sequelize.models[associatedModelName].primaryKeyAttribute;
+  const { model: associatedModelName, as, targetKey } = association.details;
+  const associatedModelIdAttribute = sequelize.models[
+    associatedModelName
+  ].getAttributes()[targetKey]?.unique
+    ? targetKey
+    : sequelize.models[associatedModelName].primaryKeyAttribute;
   const associatedIds = association.attributes.map(
-    (data) => data[associatedModelPrimaryKey],
+    (data) => data[associatedModelIdAttribute],
   );
   const [modelInstance, associatedInstances] = await Promise.all([
     sequelize.models[model.name].findByPk(model.id, {
@@ -66,7 +72,7 @@ export const handleUpdateMany = async (
     }),
     associatedIds.length
       ? sequelize.models[associatedModelName].findAll({
-          where: { [associatedModelPrimaryKey]: { [Op.in]: associatedIds } },
+          where: { [associatedModelIdAttribute]: { [Op.in]: associatedIds } },
           transaction,
         })
       : [],
@@ -81,7 +87,7 @@ export const handleUpdateMany = async (
     throw associatedIds.reduce(
       (acc, associatedId, index) =>
         associatedInstances.some(
-          ({ dataValues: { [associatedModelPrimaryKey]: id } }) =>
+          ({ dataValues: { [associatedModelIdAttribute]: id } }) =>
             id === associatedId,
         )
           ? acc
@@ -101,10 +107,7 @@ export const handleUpdateMany = async (
   const setter = `set${pluralize(
     as ? camelCaseToPascalCase(as) : associatedModelName,
   )}`;
-  await modelInstance[setter](
-    association.attributes.map((data) => data[associatedModelPrimaryKey]),
-    {
-      transaction,
-    },
-  );
+  await modelInstance[setter](associatedInstances, {
+    transaction,
+  });
 };

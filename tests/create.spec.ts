@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { Sequelize, DataTypes } from "sequelize";
 import * as dotenv from "dotenv";
 import { extendSequelize } from "../src/sequelize/extended";
@@ -903,5 +904,114 @@ describe("Create", () => {
         pointer: "/data/relationships/skills/data/2/id",
       }),
     ]);
+  });
+
+  it("Should create table and records associated through belongsToMany - custom keys", async () => {
+    const User = sequelize.define<UserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        id1: { type: DataTypes.UUID, unique: true, defaultValue: randomUUID },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        id2: { type: DataTypes.UUID, unique: true, defaultValue: randomUUID },
+        name: DataTypes.STRING,
+      },
+      { timestamps: false },
+    );
+
+    const UserSkill = sequelize.define<UserSkillModel>(
+      "UserSkill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        id3: DataTypes.UUID,
+        id4: DataTypes.UUID,
+        selfGranted: DataTypes.BOOLEAN,
+      },
+      { timestamps: false },
+    );
+
+    User.belongsToMany(Skill, {
+      as: "associatedSkills",
+      sourceKey: "id1",
+      targetKey: "id2",
+      foreignKey: "id3",
+      otherKey: "id4",
+      through: UserSkill,
+    });
+
+    Skill.belongsToMany(User, {
+      as: "users",
+      sourceKey: "id2",
+      targetKey: "id1",
+      foreignKey: "id4",
+      otherKey: "id3",
+      through: UserSkill,
+    });
+
+    await sequelize.sync();
+
+    const { id2: cookingId } = await Skill.create({ name: "Cooking" });
+
+    const user = await User.create({
+      name: "Justin",
+      age: 33,
+      associatedSkills: [
+        { name: "Programming" },
+        { id2: cookingId, through: { selfGranted: true } },
+      ],
+    });
+
+    const userWithAssociations = await User.findByPk(user.id, {
+      include: "associatedSkills",
+    });
+
+    expect(userWithAssociations?.name).toEqual("Justin");
+    expect(userWithAssociations?.age).toEqual(33);
+    expect(userWithAssociations?.associatedSkills).toHaveLength(2);
+
+    const programming = userWithAssociations?.associatedSkills?.find(
+      ({ name }) => name === "Programming",
+    );
+    const cooking = userWithAssociations?.associatedSkills?.find(
+      ({ name }) => name === "Cooking",
+    );
+
+    expect(programming?.UserSkill?.selfGranted).toBeNull();
+    expect(cooking?.UserSkill?.selfGranted).toEqual(true);
+
+    const programmingWithUser = await Skill.findByPk(
+      userWithAssociations?.associatedSkills?.find(
+        ({ name }) => name === "Programming",
+      )?.id,
+      { include: ["users"] },
+    );
+
+    expect(programmingWithUser?.name).toEqual("Programming");
+    expect(programmingWithUser?.users?.[0]?.id).toEqual(user.id);
+    expect(programmingWithUser?.users?.[0]?.name).toEqual(user.name);
+    expect(programmingWithUser?.users?.[0]?.age).toEqual(user.age);
+    expect(programmingWithUser?.users?.[0]?.UserSkill?.selfGranted).toBeNull();
+
+    const cookingWithUser = await Skill.findByPk(
+      userWithAssociations?.associatedSkills?.find(
+        ({ name }) => name === "Cooking",
+      )?.id,
+      { include: ["users"] },
+    );
+
+    expect(cookingWithUser?.name).toEqual("Cooking");
+    expect(cookingWithUser?.users?.[0]?.id).toEqual(user.id);
+    expect(cookingWithUser?.users?.[0]?.name).toEqual(user.name);
+    expect(cookingWithUser?.users?.[0]?.age).toEqual(user.age);
+    expect(cookingWithUser?.users?.[0]?.UserSkill?.selfGranted).toEqual(true);
   });
 });
