@@ -10,7 +10,7 @@ export const handleCreateHasOne = async (
   model: { name: string; id: string },
   transaction: Transaction,
 ): Promise<void> => {
-  const { model: associatedModelName, as } = association.details;
+  const { model: associatedModelName, as, targetKey } = association.details;
   const modelInstance = await sequelize.models[model.name].findByPk(model.id, {
     transaction,
   });
@@ -18,9 +18,13 @@ export const handleCreateHasOne = async (
     throw [new Error("Unable to find created model")];
   }
   let joinId: string | undefined;
-  const associatedModelPrimaryKey =
-    sequelize.models[association.details.model].primaryKeyAttribute;
-  const isCreate = !association.attributes[associatedModelPrimaryKey];
+
+  const associatedModelIdAttribute = sequelize.models[
+    associatedModelName
+  ].getAttributes()[targetKey]?.unique
+    ? targetKey
+    : sequelize.models[associatedModelName].primaryKeyAttribute;
+  const isCreate = !association.attributes[associatedModelIdAttribute];
   if (isCreate) {
     const model = await sequelize.models[associatedModelName].create(
       association.attributes,
@@ -28,9 +32,9 @@ export const handleCreateHasOne = async (
         transaction,
       },
     );
-    joinId = model[associatedModelPrimaryKey];
+    joinId = model[associatedModelIdAttribute];
   } else {
-    joinId = association.attributes[associatedModelPrimaryKey];
+    joinId = association.attributes[associatedModelIdAttribute];
 
     if (!(await sequelize.models[associatedModelName].findByPk(joinId))) {
       throw [
@@ -67,22 +71,23 @@ export const handleBulkCreateHasOne = async (
     throw [new Error("Not all models were successfully created")];
   }
 
-  const associatedModelName = association.details.model;
-  const associatedModelPrimaryKey =
-    sequelize.models[association.details.model].primaryKeyAttribute;
+  const { model: associatedModelName, targetKey } = association.details;
+  const associatedModelIdAttribute = sequelize.models[
+    associatedModelName
+  ].getAttributes()[targetKey]?.unique
+    ? targetKey
+    : sequelize.models[associatedModelName].primaryKeyAttribute;
 
   await Promise.all(
     association.attributes.map(async (attribute, index) => {
-      const isCreate = !attribute[associatedModelPrimaryKey];
+      const isCreate = !attribute[associatedModelIdAttribute];
 
       if (isCreate) {
         const id = (
           await sequelize.models[associatedModelName].create(attribute, {
             transaction,
           })
-        )
-          .getDataValue(associatedModelPrimaryKey)
-          .toString();
+        )[associatedModelIdAttribute].toString();
 
         return modelInstances[index][`set${associatedModelName}`](id, {
           transaction,
@@ -91,7 +96,7 @@ export const handleBulkCreateHasOne = async (
 
       if (
         !(await sequelize.models[associatedModelName].findByPk(
-          attribute[associatedModelPrimaryKey],
+          attribute[associatedModelIdAttribute],
         ))
       ) {
         throw [
@@ -103,7 +108,7 @@ export const handleBulkCreateHasOne = async (
       }
 
       return modelInstances[index][`set${associatedModelName}`](
-        attribute[associatedModelPrimaryKey],
+        attribute[associatedModelIdAttribute],
         {
           transaction,
         },
@@ -126,39 +131,39 @@ export const handleCreateMany = async (
     throw [new Error("Unable to find created model")];
   }
 
-  const associatedModelName = association.details.model;
-  const associatedModelPrimaryKey =
-    sequelize.models[associatedModelName].primaryKeyAttribute;
+  const { model: associatedModelName, targetKey } = association.details;
+  const associatedModelIdAttribute = sequelize.models[
+    associatedModelName
+  ].getAttributes()[targetKey]?.unique
+    ? targetKey
+    : sequelize.models[associatedModelName].primaryKeyAttribute;
   const addFnName = `add${camelCaseToPascalCase(association.details.as)}`;
 
   const results = await Promise.allSettled(
     association.attributes.map(async (attribute, index) => {
-      const isCreate = !attribute[associatedModelPrimaryKey];
+      const isCreate = !attribute[associatedModelIdAttribute];
 
       if (isCreate) {
-        const id = (
-          await sequelize.models[associatedModelName].create(
-            { ...attribute, through: undefined },
-            { transaction },
-          )
-        )
-          .getDataValue(associatedModelPrimaryKey)
-          .toString();
+        const createdInstance = await sequelize.models[
+          associatedModelName
+        ].create({ ...attribute, through: undefined }, { transaction });
 
-        return modelInstance[addFnName](id, {
+        return modelInstance[addFnName](createdInstance, {
           through: attribute.through,
           transaction,
         });
       }
 
-      if (
-        !(await sequelize.models[associatedModelName].findByPk(
-          attribute[associatedModelPrimaryKey],
-          {
-            transaction,
-          },
-        ))
-      ) {
+      const existingInstance = await sequelize.models[
+        associatedModelName
+      ].findOne({
+        where: {
+          [associatedModelIdAttribute]: attribute[associatedModelIdAttribute],
+        },
+        transaction,
+      });
+
+      if (!existingInstance) {
         throw new NotFoundError({
           detail: `Payload must include an ID of an existing '${associatedModelName}'.`,
           pointer: `/data/relationships/${pluralize(
@@ -167,7 +172,7 @@ export const handleCreateMany = async (
         });
       }
 
-      return modelInstance[addFnName](attribute[associatedModelPrimaryKey], {
+      return modelInstance[addFnName](existingInstance, {
         through: attribute.through,
         transaction,
       });
@@ -202,39 +207,42 @@ export const handleBulkCreateMany = async (
     throw [new Error("Not all models were successfully created")];
   }
 
-  const associatedModelName = association.details.model;
-  const associatedModelPrimaryKey =
-    sequelize.models[associatedModelName].primaryKeyAttribute;
+  const { model: associatedModelName, targetKey } = association.details;
+  const associatedModelIdAttribute = sequelize.models[
+    associatedModelName
+  ].getAttributes()[targetKey]?.unique
+    ? targetKey
+    : sequelize.models[associatedModelName].primaryKeyAttribute;
   const addFnName = `add${camelCaseToPascalCase(association.details.as)}`;
 
   const results = await Promise.all(
     association.attributes.map(async (attributes, index) => {
       return Promise.allSettled(
         attributes.map(async (attribute, index2) => {
-          const isCreate = !attribute[associatedModelPrimaryKey];
+          const isCreate = !attribute[associatedModelIdAttribute];
 
           if (isCreate) {
             // Create the models first and add their ids to the joinIds.
-            const id = (
-              await sequelize.models[associatedModelName].create(
-                { ...attribute, through: undefined },
-                { transaction },
-              )
-            )
-              .getDataValue(associatedModelPrimaryKey)
-              .toString();
+            const createdInstance = await sequelize.models[
+              associatedModelName
+            ].create({ ...attribute, through: undefined }, { transaction });
 
-            return modelInstances[index][addFnName](id, {
+            return modelInstances[index][addFnName](createdInstance, {
               through: attribute.through,
               transaction,
             });
           }
 
-          if (
-            !(await sequelize.models[associatedModelName].findByPk(
-              attribute[associatedModelPrimaryKey],
-            ))
-          ) {
+          const existingInstance = await sequelize.models[
+            associatedModelName
+          ].findOne({
+            where: {
+              [associatedModelIdAttribute]:
+                attribute[associatedModelIdAttribute],
+            },
+          });
+
+          if (!existingInstance) {
             throw new NotFoundError({
               detail: `Payload must include an ID of an existing '${associatedModelName}'.`,
               pointer: `/data/${index}/relationships/${pluralize(
@@ -243,13 +251,10 @@ export const handleBulkCreateMany = async (
             });
           }
 
-          return modelInstances[index][addFnName](
-            attribute[associatedModelPrimaryKey],
-            {
-              through: attribute.through,
-              transaction,
-            },
-          );
+          return modelInstances[index][addFnName](existingInstance, {
+            through: attribute.through,
+            transaction,
+          });
         }),
       );
     }),

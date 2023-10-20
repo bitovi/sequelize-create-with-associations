@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { Sequelize, DataTypes } from "sequelize";
 import * as dotenv from "dotenv";
 import { extendSequelize } from "../src/sequelize/extended";
@@ -958,6 +959,114 @@ describe("Update", () => {
     expect(userSkill.map(({ skillId }) => skillId)).toEqual([justin?.id]);
 
     expect(await Skill.count()).toEqual(1);
+  });
+
+  it("Should update records associated through belongsToMany - custom keys", async () => {
+    const User = sequelize.define<UserModel>(
+      "User",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        id1: { type: DataTypes.UUID, unique: true, defaultValue: randomUUID },
+        name: DataTypes.STRING,
+        age: DataTypes.INTEGER,
+      },
+      { timestamps: false },
+    );
+
+    const Skill = sequelize.define<SkillModel>(
+      "Skill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        id2: { type: DataTypes.UUID, unique: true, defaultValue: randomUUID },
+        name: DataTypes.STRING,
+      },
+      { timestamps: false },
+    );
+
+    const UserSkill = sequelize.define<UserSkillModel>(
+      "UserSkill",
+      {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        id3: DataTypes.UUID,
+        id4: DataTypes.UUID,
+        selfGranted: DataTypes.BOOLEAN,
+      },
+      { timestamps: false },
+    );
+
+    User.belongsToMany(Skill, {
+      as: "skills",
+      sourceKey: "id1",
+      targetKey: "id2",
+      foreignKey: "id3",
+      otherKey: "id4",
+      through: UserSkill,
+    });
+
+    Skill.belongsToMany(User, {
+      as: "users",
+      sourceKey: "id2",
+      targetKey: "id1",
+      foreignKey: "id4",
+      otherKey: "id3",
+      through: UserSkill,
+    });
+
+    await sequelize.sync();
+
+    const user = await User.create({
+      name: "Justin",
+      age: 33,
+      skills: [
+        { name: "Acting", through: { selfGranted: true } },
+        { name: "Cooking" },
+        { name: "Programming", through: { selfGranted: false } },
+      ],
+    });
+
+    const [cooking, programming, running] = await Promise.all([
+      Skill.findOne({
+        where: { name: "Cooking" },
+      }),
+      Skill.findOne({
+        where: { name: "Programming" },
+      }),
+      Skill.create({
+        name: "Running",
+      }),
+    ]);
+
+    await User.update(
+      {
+        age: 32,
+        skills: [
+          { id2: programming?.id2 },
+          { id2: cooking?.id2 },
+          { id2: running?.id2 },
+        ],
+      },
+      { where: { id: user.id } },
+    );
+
+    const updatedUser = await User.findByPk(user.id, { include: ["skills"] });
+
+    expect(sequelize.models).toHaveProperty("UserSkill");
+    expect(updatedUser?.skills?.map((skill) => skill.name).sort()).toEqual([
+      "Cooking",
+      "Programming",
+      "Running",
+    ]);
+
+    const userSkill = await UserSkill.findAll({
+      attributes: ["id4"],
+      where: { id3: user.id1 },
+    });
+
+    expect(userSkill.map(({ id4 }) => id4).sort()).toEqual(
+      [cooking?.id2, programming?.id2, running?.id2].sort(),
+    );
+
+    expect(await Skill.count()).toEqual(4);
   });
 
   it("Should disassociate records associated through belongsToMany", async () => {

@@ -75,13 +75,20 @@ describe("Extended", () => {
           skill: {
             joinTable: undefined,
             type: "HasOne",
-            key: "userId",
+            foreignKey: "userId",
+            sourceKey: "id",
             model: "Skill",
             as: "skill",
           },
         },
         Skill: {
-          user: { type: "BelongsTo", key: "userId", model: "User", as: "user" },
+          user: {
+            type: "BelongsTo",
+            foreignKey: "userId",
+            targetKey: "id",
+            model: "User",
+            as: "user",
+          },
         },
       });
     });
@@ -129,13 +136,20 @@ describe("Extended", () => {
         User: {
           skills: {
             type: "HasMany",
-            key: "userId",
+            foreignKey: "userId",
+            sourceKey: "id",
             model: "Skill",
             as: "skills",
           },
         },
         Skill: {
-          user: { type: "BelongsTo", key: "userId", model: "User", as: "user" },
+          user: {
+            type: "BelongsTo",
+            foreignKey: "userId",
+            targetKey: "id",
+            model: "User",
+            as: "user",
+          },
         },
       });
     });
@@ -199,7 +213,10 @@ describe("Extended", () => {
         Skill: {
           users: {
             joinTable: expect.any(Function),
-            key: "skillId",
+            sourceKey: "id",
+            targetKey: "id",
+            foreignKey: "skillId",
+            otherKey: "userId",
             model: "User",
             type: "BelongsToMany",
             as: "users",
@@ -208,7 +225,10 @@ describe("Extended", () => {
         User: {
           skills: {
             joinTable: expect.any(Function),
-            key: "userId",
+            sourceKey: "id",
+            targetKey: "id",
+            foreignKey: "userId",
+            otherKey: "skillId",
             model: "Skill",
             type: "BelongsToMany",
             as: "skills",

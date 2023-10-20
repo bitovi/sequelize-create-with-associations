@@ -29,11 +29,23 @@ function calculateAssociationProp(associations): AssociationLookup {
     const association: AssociationLookup = {};
 
     if (associations[key].hasOwnProperty("options")) {
-      const { associationType, target, foreignKey, throughModel, as } =
-        associations[key];
+      const {
+        associationType,
+        target,
+        sourceKey,
+        targetKey,
+        foreignKey,
+        otherKey,
+        throughModel,
+        as,
+      } = associations[key];
+
       association[key] = {
         type: associationType,
-        key: foreignKey,
+        sourceKey,
+        targetKey,
+        foreignKey,
+        otherKey,
         model: target.name,
         ...(throughModel ? { joinTable: throughModel } : {}),
         as,
@@ -44,15 +56,14 @@ function calculateAssociationProp(associations): AssociationLookup {
 
   return result;
 }
-export function getLookup(sequelize): AssociationLookupLookup {
-  const lookup: AssociationLookupLookup = {};
-  const models = sequelize.models;
-  const modelKeys = Object.keys(models);
-  modelKeys.forEach((key) => {
-    const associations = calculateAssociationProp(models[key].associations);
-    lookup[key] = associations;
-  });
-  return lookup;
+export function getLookup({ models }): AssociationLookupLookup {
+  return Object.keys(models).reduce(
+    (acc, modelName) => ({
+      ...acc,
+      [modelName]: calculateAssociationProp(models[modelName].associations),
+    }),
+    {} as AssociationLookupLookup,
+  );
 }
 
 export const extendSequelize = (SequelizeClass: any) => {
